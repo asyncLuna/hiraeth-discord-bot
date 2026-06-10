@@ -1,0 +1,10 @@
+sentry:
+  environment: development
+  debug: true
+  traces-sample-rate: 1.0
+  profile-session-sample-rate: 1.0
+  profile-lifecycle: TRACE
+  enable-spotlight: true
+  logging:
+    minimum-event-level: DEBUG
+    minimum-breadcrumb-level: DEBUG

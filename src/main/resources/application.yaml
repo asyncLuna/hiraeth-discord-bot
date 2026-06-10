@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: overwatch-discord-bot
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  debug: false
+  send-default-pii: ${SENTRY_SEND_DEFAULT_PII:false}
+  max-breadcrumbs: 200
+  traces-sample-rate: 0.1
+  profile-session-sample-rate: 0.01
+  enable-backpressure-handling: true
+  logging:
+    minimum-event-level: WARN
+    minimum-breadcrumb-level: INFO
+  logs:
+    enabled: ${SENTRY_LOGS_ENABLED:true}
+  enable-spotlight: false
