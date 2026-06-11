@@ -1,6 +1,8 @@
 spring:
   application:
     name: overwatch-discord-bot
+  mongodb:
+    uri: ${MONGO_URI:mongodb://localhost:27017/overwatch_bot}
 
 sentry:
   dsn: ${SENTRY_DSN:}
@@ -16,3 +18,7 @@ sentry:
   logs:
     enabled: ${SENTRY_LOGS_ENABLED:true}
   enable-spotlight: false
+
+discord:
+  bot:
+    token: ${DISCORD_BOT_TOKEN:}
