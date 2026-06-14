@@ -17,9 +17,8 @@ public interface EventListener<T extends Event> {
     try {
       for (Type type : getClass().getGenericInterfaces()) {
         if (type instanceof ParameterizedType parameterizedType) {
-          if (parameterizedType.getRawType().equals(EventListener.class)) {
+          if (parameterizedType.getRawType().equals(EventListener.class))
             return (Class<T>) parameterizedType.getActualTypeArguments()[0];
-          }
         }
       }
     } catch (Exception exception) {

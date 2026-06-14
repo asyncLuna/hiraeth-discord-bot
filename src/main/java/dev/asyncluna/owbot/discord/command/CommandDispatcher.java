@@ -6,12 +6,14 @@ import dev.asyncluna.owbot.core.model.GuildSettings;
 import dev.asyncluna.owbot.core.repository.GuildSettingsRepository; // Injecting your MongoDB
 // repository
 import discord4j.common.util.Snowflake;
+import discord4j.core.event.domain.interaction.ChatInputAutoCompleteEvent;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.discordjson.json.ApplicationCommandOptionData;
 import discord4j.discordjson.json.ApplicationCommandRequest;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -79,8 +81,15 @@ public class CommandDispatcher {
           String commandName = event.getCommandName();
           BotCommand command = commandMap.get(commandName);
 
+          boolean isEphemeral = false;
+          if (command != null) {
+            Command meta = command.getClass().getAnnotation(Command.class);
+            if (meta != null) isEphemeral = meta.ephemeral();
+          }
+
           return event
               .deferReply()
+              .withEphemeral(isEphemeral)
               .then(
                   Mono.defer(
                       () -> {
@@ -132,12 +141,34 @@ public class CommandDispatcher {
         });
   }
 
+  public Mono<Void> dispatchAutocomplete(ChatInputAutoCompleteEvent event) {
+    return Mono.defer(
+        () -> {
+          String commandName = event.getCommandName();
+          BotCommand command = commandMap.get(commandName);
+
+          if (command == null) return event.respondWithSuggestions(List.of());
+
+          return command
+              .autocomplete(event)
+              .onErrorResume(
+                  exception -> {
+                    log.error(
+                        "Unhandled exception during autocomplete execution for command '/{}'",
+                        commandName,
+                        exception);
+                    return event.respondWithSuggestions(Collections.emptyList());
+                  });
+        });
+  }
+
   private ApplicationCommandOptionData mapOption(CommandOption option) {
     return ApplicationCommandOptionData.builder()
         .name(option.name())
         .description(option.description())
         .type(option.type().getValue())
         .required(option.required())
+        .autocomplete(option.autocomplete())
         .build();
   }
 

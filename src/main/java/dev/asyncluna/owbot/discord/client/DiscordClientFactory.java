@@ -16,8 +16,7 @@ public class DiscordClientFactory {
   @Bean
   public GatewayDiscordClient gatewayDiscordClient(DiscordBotProperties properties) {
     if (properties.getToken() == null || properties.getToken().isBlank()) {
-      throw new IllegalStateException(
-          "DISCORD_BOT_TOKEN environment variable not set or empty");
+      throw new IllegalStateException("DISCORD_BOT_TOKEN environment variable not set or empty");
     }
 
     return DiscordClient.create(properties.getToken())
@@ -25,7 +24,8 @@ public class DiscordClientFactory {
         .setEnabledIntents(
             IntentSet.of(
                 Intent.GUILDS, Intent.GUILD_MEMBERS, Intent.GUILD_MESSAGES, Intent.MESSAGE_CONTENT))
-        .setInitialPresence(env -> ClientPresence.online(ClientActivity.custom("Pocketing you")))
+        .setInitialPresence(
+            shardInfo -> ClientPresence.online(ClientActivity.custom("Pocketing you")))
         .login()
         .block();
   }

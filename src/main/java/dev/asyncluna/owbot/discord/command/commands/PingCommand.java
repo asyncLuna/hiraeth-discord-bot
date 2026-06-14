@@ -3,13 +3,13 @@ package dev.asyncluna.owbot.discord.command.commands;
 import dev.asyncluna.owbot.discord.command.BotCommand;
 import dev.asyncluna.owbot.discord.command.Command;
 import dev.asyncluna.owbot.discord.command.CommandContext;
-import java.time.Duration;
-import java.time.Instant;
-
 import discord4j.gateway.GatewayClient;
+import java.time.Duration;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-@Command(name = "ping", description = "Checks the bot's latency.")
+@Component
+@Command(name = "ping", description = "Check the bot's latency.", ephemeral = true)
 public class PingCommand implements BotCommand {
   @Override
   public Mono<Void> handle(CommandContext ctx) {
@@ -23,7 +23,7 @@ public class PingCommand implements BotCommand {
             .map(Duration::toMillis)
             .orElse(0L);
 
-    String localizedResponse = ctx.localize("commands.ping.response", latencyMs);
+    String localizedResponse = ctx.localize("ping.response", latencyMs);
 
     return ctx.editReply(localizedResponse).then();
   }

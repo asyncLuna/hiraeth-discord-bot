@@ -1,16 +1,11 @@
 package dev.asyncluna.owbot.discord.command;
 
 import discord4j.core.object.command.ApplicationCommandOption;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 
-@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@Repeatable(CommandOptions.class)
-public @interface CommandOption {
+public @interface SubCommand {
   String name();
 
   String description();
@@ -20,6 +15,4 @@ public @interface CommandOption {
   boolean required() default false;
 
   boolean autocomplete() default false;
-
-  SubCommand[] subCommands() default {};
 }
