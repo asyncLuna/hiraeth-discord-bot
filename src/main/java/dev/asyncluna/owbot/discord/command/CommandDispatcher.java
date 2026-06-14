@@ -3,12 +3,13 @@ package dev.asyncluna.owbot.discord.command;
 import dev.asyncluna.owbot.core.i18n.I18nManager;
 import dev.asyncluna.owbot.core.i18n.SupportedLocale;
 import dev.asyncluna.owbot.core.model.GuildSettings;
-import dev.asyncluna.owbot.core.repository.GuildSettingsRepository; // Injecting your MongoDB
-// repository
+import dev.asyncluna.owbot.core.repository.GuildSettingsRepository;
+import dev.asyncluna.owbot.discord.util.EmbedUtils;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ChatInputAutoCompleteEvent;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
+import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.discordjson.json.ApplicationCommandOptionData;
 import discord4j.discordjson.json.ApplicationCommandRequest;
 import java.util.ArrayList;
@@ -18,10 +19,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -128,12 +132,38 @@ public class CommandDispatcher {
                                       .handle(ctx)
                                       .onErrorResume(
                                           commandException -> {
-                                            log.error(
-                                                "Unhandled exception executing command '/{}'",
-                                                commandName,
-                                                commandException);
-                                            return ctx.editReply(
-                                                    ctx.localize("error.command_execution_failed"))
+                                            String userErrorMessage =
+                                                ctx.localize(
+                                                    "error.command_execution_failed_description");
+
+                                            if (commandException
+                                                instanceof WebClientResponseException exception) {
+                                              String rawJson = exception.getResponseBodyAsString();
+                                              log.debug(
+                                                  "API error body payload for '/{}': {}",
+                                                  commandName,
+                                                  rawJson);
+
+                                              String extractedError = parseApiErrorMessage(rawJson);
+                                              if (extractedError != null) {
+                                                userErrorMessage = extractedError;
+                                              }
+                                            } else {
+                                              log.error(
+                                                  "Unhandled exception executing command '/{}'",
+                                                  commandName,
+                                                  commandException);
+                                            }
+
+                                            return ctx.editReply()
+                                                .withEmbeds(
+                                                    EmbedCreateSpec.builder()
+                                                        .color(EmbedUtils.ERROR_COLOR)
+                                                        .title(
+                                                            ctx.localize(
+                                                                "error.command_execution_failed_title"))
+                                                        .description(userErrorMessage)
+                                                        .build())
                                                 .then();
                                           });
                                 });
@@ -147,7 +177,7 @@ public class CommandDispatcher {
           String commandName = event.getCommandName();
           BotCommand command = commandMap.get(commandName);
 
-          if (command == null) return event.respondWithSuggestions(List.of());
+          if (command == null) return event.respondWithSuggestions(Collections.emptyList());
 
           return command
               .autocomplete(event)
@@ -194,5 +224,17 @@ public class CommandDispatcher {
         event.getInteraction().getUser().getUsername(),
         event.getInteraction().getUser().getId().asString(),
         event.getInteraction().getGuildId().map(Snowflake::asString).orElse("DM"));
+  }
+
+  private String parseApiErrorMessage(String json) {
+    if (json == null || !json.contains("\"error\"")) return null;
+    try {
+      Pattern pattern = Pattern.compile("\"error\"\\s*:\\s*\"([^\"]+)\"");
+      Matcher matcher = pattern.matcher(json);
+      if (matcher.find()) return matcher.group(1);
+    } catch (Exception exception) {
+      log.warn("Failed to parse API error JSON payload", exception);
+    }
+    return null;
   }
 }

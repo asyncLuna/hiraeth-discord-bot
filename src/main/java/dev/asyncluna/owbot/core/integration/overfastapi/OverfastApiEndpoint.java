@@ -32,7 +32,11 @@ public enum OverfastApiEndpoint {
   private final String path;
   private final long ttlSeconds;
 
+  public String getPath(Object... args) {
+    return String.format(path, args);
+  }
+
   public String getUrl(Object... args) {
-    return BASE_URL + String.format(path, args);
+    return BASE_URL + getPath(args);
   }
 }
