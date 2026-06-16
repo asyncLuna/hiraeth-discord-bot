@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 public final class EmbedUtils {
   public static final Color DEFAULT_COLOR = Color.of(255, 156, 0);
   public static final Color ERROR_COLOR = Color.of(255, 0, 0);
-  public static final EmbedCreateFields.Field EMPTY_FIELD =
+  public static final EmbedCreateFields.Field BLANK_FIELD =
       EmbedCreateFields.Field.of("", "", false);
 }

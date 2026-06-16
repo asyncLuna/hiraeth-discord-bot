@@ -158,11 +158,11 @@ public class CommandDispatcher {
                                             return ctx.editReply()
                                                 .withEmbeds(
                                                     EmbedCreateSpec.builder()
-                                                        .color(EmbedUtils.ERROR_COLOR)
                                                         .title(
                                                             ctx.localize(
                                                                 "error.command_execution_failed_title"))
                                                         .description(userErrorMessage)
+                                                        .color(EmbedUtils.ERROR_COLOR)
                                                         .build())
                                                 .then();
                                           });

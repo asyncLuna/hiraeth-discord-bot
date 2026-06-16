@@ -1,10 +1,12 @@
 package dev.asyncluna.owbot.core.integration.overfastapi;
 
 import dev.asyncluna.owbot.core.integration.overfastapi.dto.GamemodeDetails;
+import dev.asyncluna.owbot.core.integration.overfastapi.dto.Hero;
 import dev.asyncluna.owbot.core.integration.overfastapi.dto.HeroShort;
 import dev.asyncluna.owbot.core.integration.overfastapi.dto.HeroStatsSummary;
 import dev.asyncluna.owbot.core.integration.overfastapi.dto.Map;
 import dev.asyncluna.owbot.core.util.HttpUtils;
+import java.io.IOException;
 import java.net.URI;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +23,16 @@ public class OverfastApiService {
   private final OverfastApiCache cache;
 
   public Flux<HeroShort> getHeroes() {
-    return getHeroes(null, null, null);
+    return getHeroes(null, OverfastApiQueryParam.Locale.EN_US, null);
   }
 
   public Flux<HeroShort> getHeroes(
       OverfastApiQueryParam.Role role, OverfastApiQueryParam.Locale locale, String gamemode) {
-    log.debug("Fetching heroes with role={}, locale={}, gamemode={}", role, locale, gamemode);
+    log.debug(
+        "Fetching heroes from Overfast API with role={}, locale={}, gamemode={}",
+        role,
+        locale,
+        gamemode);
 
     String roleKey = role != null ? role.toString() : OverfastApiCache.ALL_KEY;
     String localeKey =
@@ -81,7 +87,7 @@ public class OverfastApiService {
       OverfastApiQueryParam.CompetitiveDivision competitiveDivision,
       OverfastApiQueryParam.OrderBy orderBy) {
     log.debug(
-        "Fetching hero stats with platform={}, gamemode={}, region={}, role={}, map={}, competitiveDivision={}, orderBy={}",
+        "Fetching hero stats from Overfast API with platform={}, gamemode={}, region={}, role={}, map={}, competitiveDivision={}, orderBy={}",
         platform,
         gamemode,
         region,
@@ -137,6 +143,8 @@ public class OverfastApiService {
   }
 
   public Flux<Map> getMaps() {
+    log.debug("Fetching maps from Overfast API");
+
     Function<UriBuilder, URI> uriFunction =
         builder -> builder.path(OverfastApiEndpoint.GET_A_LIST_OF_MAPS.getPath()).build();
     return getWithCache(
@@ -145,6 +153,33 @@ public class OverfastApiService {
             uriFunction,
             Map[].class)
         .flatMapMany(Flux::fromArray);
+  }
+
+  public Mono<Hero> getHeroData(String heroKey) {
+    return getHeroData(heroKey, OverfastApiQueryParam.Locale.EN_US);
+  }
+
+  public Mono<Hero> getHeroData(String heroKey, OverfastApiQueryParam.Locale locale) {
+    log.debug(
+        "Fetching hero data from Overfast API for heroKey={} with locale={}", heroKey, locale);
+
+    String localeKey =
+        locale != null ? locale.toString() : OverfastApiQueryParam.Locale.EN_US.toString();
+
+    String cacheKey = String.format("heroData:heroKey:%s:locale:%s", heroKey, localeKey);
+
+    OverfastApiQueryParams queryParams =
+        OverfastApiQueryParams.builder().heroKey(heroKey).locale(locale).build();
+
+    Function<UriBuilder, URI> uriFunction =
+        builder -> {
+          builder.path(OverfastApiEndpoint.GET_HERO_DATA.getPath(heroKey));
+          if (locale != null) builder.queryParam("locale", locale.toString());
+          return builder.build();
+        };
+
+    return getWithCache(OverfastApiEndpoint.GET_HERO_DATA, cacheKey, uriFunction, Hero.class)
+        .contextWrite(context -> context.put(HttpUtils.PARAM_CONTEXT_KEY, queryParams));
   }
 
   private <T> Mono<T> getWithCache(
@@ -167,7 +202,12 @@ public class OverfastApiService {
               return finalUri;
             })
         .retrieve()
-        .bodyToMono(type)
+        .bodyToMono(String.class)
+        .doOnNext(json -> log.debug("Received JSON response for endpoint [{}]: {}", endpoint, json))
+        .map(json -> HttpUtils.OBJECT_MAPPER.readValue(json, type))
+        .onErrorMap(
+            IOException.class,
+            exception -> new RuntimeException("Failed to parse JSON response", exception))
         .doOnNext(response -> cache.put(endpoint, cacheKey, response, endpoint.getTtlSeconds()))
         .then(
             Mono.defer(

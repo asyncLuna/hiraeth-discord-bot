@@ -2,23 +2,29 @@ package dev.asyncluna.owbot.discord.listener.listeners;
 
 import dev.asyncluna.owbot.core.i18n.I18nManager;
 import dev.asyncluna.owbot.core.i18n.SupportedLocale;
-import dev.asyncluna.owbot.core.integration.overfastapi.OverfastApiQueryParam;
 import dev.asyncluna.owbot.core.integration.overfastapi.OverfastApiService;
 import dev.asyncluna.owbot.core.integration.overfastapi.dto.HeroShort;
 import dev.asyncluna.owbot.core.integration.overfastapi.dto.HeroStatsSummary;
 import dev.asyncluna.owbot.core.model.GuildSettings;
 import dev.asyncluna.owbot.core.repository.GuildSettingsRepository;
+import dev.asyncluna.owbot.discord.command.commands.HeroStatsCommand;
+import dev.asyncluna.owbot.discord.command.commands.HeroStatsCommand.HeroStatsSession;
 import dev.asyncluna.owbot.discord.listener.EventListener;
 import dev.asyncluna.owbot.discord.util.EmbedUtils;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.SelectMenuInteractionEvent;
+import discord4j.core.object.component.ActionRow;
+import discord4j.core.object.component.Button;
+import discord4j.core.object.component.LayoutComponent;
 import discord4j.core.spec.EmbedCreateSpec;
-import io.sentry.util.StringUtils;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -29,6 +35,7 @@ public class HeroStatsSelectListener implements EventListener<SelectMenuInteract
   private final OverfastApiService overfastApiService;
   private final GuildSettingsRepository guildSettingsRepository;
   private final I18nManager i18nManager;
+  private final HeroStatsCommand heroStatsCommand;
 
   @Override
   public Mono<Void> execute(SelectMenuInteractionEvent event) {
@@ -38,52 +45,12 @@ public class HeroStatsSelectListener implements EventListener<SelectMenuInteract
     String menuPrefix = parts[0];
 
     if (!"hs-1".equals(menuPrefix) && !"hs-2".equals(menuPrefix)) return Mono.empty();
+    if (parts.length < 2) return Mono.empty();
 
-    String ownerId = null;
-    OverfastApiQueryParam.Platform parsedPlatform = null;
-    String parsedGamemode = null;
-    OverfastApiQueryParam.Region parsedRegion = null;
-    OverfastApiQueryParam.Role parsedRole = null;
-    String parsedMap = null;
-    OverfastApiQueryParam.CompetitiveDivision parsedCompetitiveDivision = null;
-    OverfastApiQueryParam.OrderBy parsedOrderBy = null;
+    String sessionId = parts[1];
 
-    if (parts.length > 1) {
-      String queryString = parts[1];
-      for (String param : queryString.split("&")) {
-        String[] keyValue = param.split("=", 2);
-        if (keyValue.length == 2 && !"null".equals(keyValue[1])) {
-          String rawValue = keyValue[1];
-          String normalizedValue = rawValue.replace("-", "_").replace(" ", "_").toUpperCase();
-
-          switch (keyValue[0]) {
-            case "o" -> ownerId = rawValue;
-            case "p" -> parsedPlatform = OverfastApiQueryParam.Platform.valueOf(normalizedValue);
-            case "g" -> parsedGamemode = rawValue;
-            case "reg" -> parsedRegion = OverfastApiQueryParam.Region.valueOf(normalizedValue);
-            case "rol" -> parsedRole = OverfastApiQueryParam.Role.valueOf(normalizedValue);
-            case "m" -> parsedMap = rawValue;
-            case "c" ->
-                parsedCompetitiveDivision =
-                    OverfastApiQueryParam.CompetitiveDivision.valueOf(normalizedValue);
-            case "ord" -> parsedOrderBy = OverfastApiQueryParam.OrderBy.valueOf(normalizedValue);
-          }
-        }
-      }
-    }
-
-    String selectedHeroName = event.getValues().getFirst();
+    HeroStatsSession session = heroStatsCommand.getSessionCache().getIfPresent(sessionId);
     String guildIdStr = event.getInteraction().getGuildId().map(Snowflake::asString).orElse("");
-
-    final String finalOwnerId = ownerId;
-    final OverfastApiQueryParam.Platform finalPlatform = parsedPlatform;
-    final String finalGamemode = parsedGamemode;
-    final OverfastApiQueryParam.Region finalRegion = parsedRegion;
-    final OverfastApiQueryParam.Role finalRole = parsedRole;
-    final String finalMap = parsedMap;
-    final OverfastApiQueryParam.CompetitiveDivision finalCompetitiveDivision =
-        parsedCompetitiveDivision;
-    final OverfastApiQueryParam.OrderBy finalOrderBy = parsedOrderBy;
 
     return guildSettingsRepository
         .findById(guildIdStr)
@@ -98,15 +65,25 @@ public class HeroStatsSelectListener implements EventListener<SelectMenuInteract
               Locale currentLocale =
                   SupportedLocale.forLanguageTag(settings.getLocale()).getLocale();
 
-              String interactionUserId = event.getInteraction().getUser().getId().asString();
-              if (finalOwnerId != null && !finalOwnerId.equals(interactionUserId)) {
-                String localizedError = i18nManager.localize("error.menu_not_owned", currentLocale);
-                return event
-                    .reply()
-                    .withEphemeral(true)
-                    .withContent(localizedError)
-                    .then(Mono.empty());
+              if (session == null) {
+                String sessionExpiredError =
+                    i18nManager.localize("error.menu_interaction_expired", currentLocale);
+                if (sessionExpiredError == null
+                    || sessionExpiredError.contains("error.menu_interaction_expired")) {
+                  sessionExpiredError =
+                      "This interaction menu has expired. Please run /hero_stats again.";
+                }
+                return event.reply().withEphemeral(true).withContent(sessionExpiredError);
               }
+
+              String interactionUserId = event.getInteraction().getUser().getId().asString();
+              if (!session.userId().equals(interactionUserId)) {
+                String localizedError = i18nManager.localize("error.menu_not_owned", currentLocale);
+                return event.reply().withEphemeral(true).withContent(localizedError);
+              }
+
+              String selectedHeroName = event.getValues().getFirst();
+              session.setSelectedHeroKey(selectedHeroName.toLowerCase());
 
               Mono<Map<String, HeroShort>> heroesMapMono =
                   overfastApiService
@@ -116,13 +93,13 @@ public class HeroStatsSelectListener implements EventListener<SelectMenuInteract
               Mono<HeroStatsSummary> statsMono =
                   overfastApiService
                       .getHeroStats(
-                          finalPlatform,
-                          finalGamemode,
-                          finalRegion,
-                          finalRole,
-                          finalMap,
-                          finalCompetitiveDivision,
-                          finalOrderBy)
+                          session.platform(),
+                          session.gamemode(),
+                          session.region(),
+                          session.role(),
+                          session.map(),
+                          session.competitiveDivision(),
+                          session.orderBy())
                       .filter(stats -> stats.hero().equalsIgnoreCase(selectedHeroName))
                       .next();
 
@@ -139,66 +116,92 @@ public class HeroStatsSelectListener implements EventListener<SelectMenuInteract
                         EmbedCreateSpec.Builder updatedEmbedBuilder =
                             EmbedCreateSpec.builder().title(title).color(EmbedUtils.DEFAULT_COLOR);
 
-                        if (heroDetails != null && heroDetails.role() != null)
+                        if (session.role() != null) {
                           updatedEmbedBuilder.addField(
-                              i18nManager.localize("hero_stats.role", currentLocale),
-                              StringUtils.capitalize(heroDetails.role()),
+                              i18nManager.localize("hero.role", currentLocale),
+                              session.role().getFriendlyName(),
                               true);
-
-                        if (heroDetails != null && heroDetails.subrole() != null)
+                        } else {
                           updatedEmbedBuilder.addField(
-                              i18nManager.localize("hero_stats.sub_role", currentLocale),
-                              StringUtils.capitalize(heroDetails.subrole()),
+                              i18nManager.localize("hero.role", currentLocale),
+                              i18nManager.localize("hero.role.all", currentLocale),
                               true);
+                        }
 
                         updatedEmbedBuilder
-                            .addField(EmbedUtils.EMPTY_FIELD)
                             .addField(
-                                i18nManager.localize("hero_stats.platform", currentLocale),
-                                finalPlatform.getFriendlyName(),
+                                i18nManager.localize("hero.platform", currentLocale),
+                                session.platform().getFriendlyName(),
                                 true)
                             .addField(
-                                i18nManager.localize("hero_stats.gamemode", currentLocale),
-                                StringUtils.capitalize(finalGamemode),
+                                i18nManager.localize("hero.gamemode", currentLocale),
+                                StringUtils.capitalize(session.gamemode()),
                                 true)
                             .addField(
-                                i18nManager.localize("hero_stats.region", currentLocale),
-                                finalRegion.getFriendlyName(),
+                                i18nManager.localize("hero.region", currentLocale),
+                                session.region().getFriendlyName(),
                                 true);
 
-                        if (finalMap != null)
+                        if (session.map() != null)
                           updatedEmbedBuilder.addField(
-                              i18nManager.localize("hero_stats.map", currentLocale),
-                              StringUtils.capitalize(finalMap),
+                              i18nManager.localize("hero.map", currentLocale),
+                              StringUtils.capitalize(session.map()),
                               true);
 
-                        if (finalCompetitiveDivision != null)
+                        if (session.competitiveDivision() != null)
                           updatedEmbedBuilder.addField(
-                              i18nManager.localize(
-                                  "hero_stats.competitive_division", currentLocale),
-                              finalCompetitiveDivision.getFriendlyName(),
+                              i18nManager.localize("hero.competitive_division", currentLocale),
+                              session.competitiveDivision().getFriendlyName(),
                               true);
 
-                        if (finalOrderBy != null)
+                        if (session.orderBy() != null)
                           updatedEmbedBuilder.addField(
-                              i18nManager.localize("hero_stats.order_by", currentLocale),
-                              finalOrderBy.getFriendlyName(),
+                              i18nManager.localize("hero.order_by", currentLocale),
+                              session.orderBy().getFriendlyName(),
                               true);
 
                         updatedEmbedBuilder
-                            .addField(EmbedUtils.EMPTY_FIELD)
                             .addField(
-                                i18nManager.localize("hero_stats.pickrate", currentLocale),
-                                heroStats.pickrate() + "%",
+                                i18nManager.localize("hero.pickrate", currentLocale),
+                                (heroStats.pickrate() != null ? heroStats.pickrate() + "%" : "N/A"),
                                 true)
                             .addField(
-                                i18nManager.localize("hero_stats.winrate", currentLocale),
-                                heroStats.winrate() + "%",
+                                i18nManager.localize("hero.winrate", currentLocale),
+                                (heroStats.winrate() != null ? heroStats.winrate() + "%" : "N/A"),
                                 true);
 
                         if (thumbnail != null) updatedEmbedBuilder.thumbnail(thumbnail);
 
-                        return event.edit().withEmbeds(updatedEmbedBuilder.build());
+                        String viewDetailsLabel =
+                            i18nManager.localize("hero.view_details", currentLocale);
+                        Button detailsButton =
+                            Button.primary("hs-btn:" + sessionId, viewDetailsLabel);
+
+                        List<LayoutComponent> layoutComponents = new ArrayList<>();
+                        event
+                            .getMessage()
+                            .ifPresent(
+                                message ->
+                                    message
+                                        .getComponents()
+                                        .forEach(
+                                            row -> {
+                                              if (row instanceof ActionRow actionRow) {
+                                                boolean hasButton =
+                                                    actionRow.getChildren().stream()
+                                                        .anyMatch(
+                                                            messageComponent ->
+                                                                messageComponent instanceof Button);
+                                                if (hasButton)
+                                                  layoutComponents.add(ActionRow.of(detailsButton));
+                                                else layoutComponents.add(actionRow);
+                                              }
+                                            }));
+
+                        return event
+                            .edit()
+                            .withEmbeds(updatedEmbedBuilder.build())
+                            .withComponents(layoutComponents);
                       });
             })
         .then();

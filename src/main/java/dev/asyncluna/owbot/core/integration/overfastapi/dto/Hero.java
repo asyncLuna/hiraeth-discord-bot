@@ -15,4 +15,4 @@ public record Hero(
     HitPoints hitpoints,
     List<Ability> abilities,
     PerksContainer perks,
-    String story) {}
+    Story story) {}

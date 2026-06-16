@@ -1,5 +1,7 @@
 package dev.asyncluna.owbot.discord.command.commands;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.asyncluna.owbot.core.integration.overfastapi.OverfastApiQueryParam;
 import dev.asyncluna.owbot.core.integration.overfastapi.OverfastApiService;
 import dev.asyncluna.owbot.core.integration.overfastapi.dto.HeroShort;
@@ -15,16 +17,21 @@ import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.command.ApplicationCommandOption;
 import discord4j.core.object.component.ActionRow;
+import discord4j.core.object.component.Button;
 import discord4j.core.object.component.SelectMenu;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.discordjson.json.ApplicationCommandOptionChoiceData;
-import io.sentry.util.StringUtils;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -72,6 +79,75 @@ import reactor.core.publisher.Mono;
 public class HeroStatsCommand implements BotCommand {
   private final OverfastApiService overfastApiService;
 
+  @Getter
+  private final Cache<String, HeroStatsSession> sessionCache =
+      Caffeine.newBuilder().expireAfterWrite(15, TimeUnit.MINUTES).maximumSize(10000).build();
+
+  @Getter
+  @Setter
+  public static class HeroStatsSession {
+    private final String userId;
+    private final OverfastApiQueryParam.Platform platform;
+    private final String gamemode;
+    private final OverfastApiQueryParam.Region region;
+    private final OverfastApiQueryParam.Role role;
+    private final String map;
+    private final OverfastApiQueryParam.CompetitiveDivision competitiveDivision;
+    private final OverfastApiQueryParam.OrderBy orderBy;
+    private String selectedHeroKey;
+
+    public HeroStatsSession(
+        String userId,
+        OverfastApiQueryParam.Platform platform,
+        String gamemode,
+        OverfastApiQueryParam.Region region,
+        OverfastApiQueryParam.Role role,
+        String map,
+        OverfastApiQueryParam.CompetitiveDivision competitiveDivision,
+        OverfastApiQueryParam.OrderBy orderBy) {
+      this.userId = userId;
+      this.platform = platform;
+      this.gamemode = gamemode;
+      this.region = region;
+      this.role = role;
+      this.map = map;
+      this.competitiveDivision = competitiveDivision;
+      this.orderBy = orderBy;
+    }
+
+    public String userId() {
+      return userId;
+    }
+
+    public OverfastApiQueryParam.Platform platform() {
+      return platform;
+    }
+
+    public String gamemode() {
+      return gamemode;
+    }
+
+    public OverfastApiQueryParam.Region region() {
+      return region;
+    }
+
+    public OverfastApiQueryParam.Role role() {
+      return role;
+    }
+
+    public String map() {
+      return map;
+    }
+
+    public OverfastApiQueryParam.CompetitiveDivision competitiveDivision() {
+      return competitiveDivision;
+    }
+
+    public OverfastApiQueryParam.OrderBy orderBy() {
+      return orderBy;
+    }
+  }
+
   @Override
   public Mono<Void> handle(CommandContext ctx) {
     OverfastApiQueryParam.Platform platform =
@@ -85,7 +161,7 @@ public class HeroStatsCommand implements BotCommand {
             .orElseThrow();
     OverfastApiQueryParam.Role role =
         ctx.getOptionAsString("role").map(OverfastApiQueryParam.Role::fromApiName).orElse(null);
-    String map = ctx.getOptionAsString("map").orElse(null);
+    String mapKey = ctx.getOptionAsString("map").orElse(null);
     OverfastApiQueryParam.CompetitiveDivision competitiveDivision =
         ctx.getOptionAsString("competitive_division")
             .map(OverfastApiQueryParam.CompetitiveDivision::fromApiName)
@@ -95,47 +171,57 @@ public class HeroStatsCommand implements BotCommand {
             .map(OverfastApiQueryParam.OrderBy::fromApiName)
             .orElse(null);
 
-    String userId = ctx.getEvent().getUser().getId().asString();
+    String userId = ctx.getAuthor().getId().asString();
 
-    StringBuilder stateBuilder = new StringBuilder();
-    stateBuilder.append("o=").append(userId);
-    stateBuilder.append("&p=").append(platform.name());
-    stateBuilder.append("&g=").append(gamemode);
-    stateBuilder.append("&reg=").append(region.name());
+    HeroStatsSession session =
+        new HeroStatsSession(
+            userId, platform, gamemode, region, role, mapKey, competitiveDivision, orderBy);
 
-    if (role != null) stateBuilder.append("&rol=").append(role.name());
-    if (map != null) stateBuilder.append("&m=").append(map);
-    if (competitiveDivision != null) stateBuilder.append("&c=").append(competitiveDivision.name());
-    if (orderBy != null) stateBuilder.append("&ord=").append(orderBy.name());
-
-    String stateContext = stateBuilder.toString();
+    String sessionId = UUID.randomUUID().toString();
 
     Mono<Map<String, HeroShort>> heroesMapMono =
         overfastApiService
             .getHeroes()
             .collect(Collectors.toMap(hero -> hero.key().toLowerCase(), hero -> hero));
 
+    Mono<Map<String, String>> mapsNameMapMono =
+        overfastApiService
+            .getMaps()
+            .collect(
+                Collectors.toMap(
+                    map -> map.key().toLowerCase(),
+                    dev.asyncluna.owbot.core.integration.overfastapi.dto.Map::name));
+
     Mono<List<HeroStatsSummary>> statsMono =
         overfastApiService
-            .getHeroStats(platform, gamemode, region, role, map, competitiveDivision, orderBy)
+            .getHeroStats(platform, gamemode, region, role, mapKey, competitiveDivision, orderBy)
             .collectList();
 
-    return Mono.zip(statsMono, heroesMapMono)
+    return Mono.zip(statsMono, heroesMapMono, mapsNameMapMono)
         .flatMap(
             tuple -> {
               List<HeroStatsSummary> heroStats = tuple.getT1();
               Map<String, HeroShort> heroesMap = tuple.getT2();
+              Map<String, String> mapsNameMap = tuple.getT3();
 
-              if (heroStats.isEmpty())
-                return ctx.editReply(ctx.localize("hero_stats.no_results")).then();
+              if (heroStats.isEmpty()) return ctx.editReply(ctx.localize("hero.no_results")).then();
 
               HeroStatsSummary firstHeroStats = heroStats.getFirst();
               HeroShort firstHeroDetails = heroesMap.get(firstHeroStats.hero().toLowerCase());
 
+              session.setSelectedHeroKey(firstHeroStats.hero().toLowerCase());
+              sessionCache.put(sessionId, session);
+
+              String friendlyMapName =
+                  mapKey != null ? mapsNameMap.getOrDefault(mapKey.toLowerCase(), mapKey) : null;
+
+              Button detailsButton =
+                  Button.primary("hs-btn:" + sessionId, ctx.localize("hero.view_details"));
+
               if (heroStats.size() <= DiscordConstants.MAX_COMPONENT_ENTRIES) {
                 SelectMenu selectMenu =
                     SelectMenu.of(
-                            "hs-1:" + stateContext,
+                            "hs-1:" + sessionId,
                             heroStats.stream()
                                 .map(
                                     heroStat -> {
@@ -148,7 +234,7 @@ public class HeroStatsCommand implements BotCommand {
                                 .toList())
                         .withPlaceholder(
                             String.format(
-                                ctx.localize("hero_stats.select_a_hero"),
+                                ctx.localize("hero.select_a_hero"),
                                 heroesMap.containsKey(heroStats.getFirst().hero().toLowerCase())
                                     ? heroesMap
                                         .get(heroStats.getFirst().hero().toLowerCase())
@@ -158,8 +244,7 @@ public class HeroStatsCommand implements BotCommand {
                                     ? heroesMap.get(heroStats.getLast().hero().toLowerCase()).name()
                                     : heroStats.getLast().hero()));
 
-                return ctx.getEvent()
-                    .editReply()
+                return ctx.editReply()
                     .withEmbeds(
                         createHeroStatsEmbed(
                             firstHeroStats,
@@ -168,11 +253,11 @@ public class HeroStatsCommand implements BotCommand {
                             gamemode,
                             region,
                             role,
-                            map,
+                            friendlyMapName,
                             competitiveDivision,
                             orderBy,
                             ctx))
-                    .withComponents(ActionRow.of(selectMenu));
+                    .withComponents(ActionRow.of(detailsButton), ActionRow.of(selectMenu));
               }
 
               List<HeroStatsSummary> firstHalf =
@@ -185,7 +270,7 @@ public class HeroStatsCommand implements BotCommand {
 
               String labelOne =
                   String.format(
-                      ctx.localize("hero_stats.select_a_hero"),
+                      ctx.localize("hero.select_a_hero"),
                       heroesMap.containsKey(firstHalf.getFirst().hero().toLowerCase())
                           ? heroesMap.get(firstHalf.getFirst().hero().toLowerCase()).name()
                           : firstHalf.getFirst().hero(),
@@ -194,7 +279,7 @@ public class HeroStatsCommand implements BotCommand {
                           : firstHalf.getLast().hero());
               String labelTwo =
                   String.format(
-                      ctx.localize("hero_stats.select_a_hero"),
+                      ctx.localize("hero.select_a_hero"),
                       heroesMap.containsKey(secondHalf.getFirst().hero().toLowerCase())
                           ? heroesMap.get(secondHalf.getFirst().hero().toLowerCase()).name()
                           : secondHalf.getFirst().hero(),
@@ -204,7 +289,7 @@ public class HeroStatsCommand implements BotCommand {
 
               SelectMenu selectMenuOne =
                   SelectMenu.of(
-                          "hs-1:" + stateContext,
+                          "hs-1:" + sessionId,
                           firstHalf.stream()
                               .map(
                                   heroStat -> {
@@ -219,7 +304,7 @@ public class HeroStatsCommand implements BotCommand {
 
               SelectMenu selectMenuTwo =
                   SelectMenu.of(
-                          "hs-2:" + stateContext,
+                          "hs-2:" + sessionId,
                           secondHalf.stream()
                               .map(
                                   heroStat -> {
@@ -242,11 +327,14 @@ public class HeroStatsCommand implements BotCommand {
                           gamemode,
                           region,
                           role,
-                          map,
+                          friendlyMapName,
                           competitiveDivision,
                           orderBy,
                           ctx))
-                  .withComponents(ActionRow.of(selectMenuOne), ActionRow.of(selectMenuTwo));
+                  .withComponents(
+                      ActionRow.of(selectMenuOne),
+                      ActionRow.of(selectMenuTwo),
+                      ActionRow.of(detailsButton));
             })
         .then();
   }
@@ -367,47 +455,46 @@ public class HeroStatsCommand implements BotCommand {
       OverfastApiQueryParam.CompetitiveDivision competitiveDivision,
       OverfastApiQueryParam.OrderBy orderBy,
       CommandContext ctx) {
+    String title =
+        heroDetails != null ? heroDetails.name() : StringUtils.capitalize(heroStats.hero());
+    String thumbnail = heroDetails != null ? heroDetails.portrait() : "";
 
-    String title = heroDetails != null ? heroDetails.name() : heroStats.hero();
-    String thumbnail = heroDetails != null ? heroDetails.portrait() : null;
+    if (title.isBlank())
+      return EmbedCreateSpec.builder()
+          .title(ctx.localize("hero.unknown_hero_title"))
+          .description(ctx.localize("hero.unknown_hero_description"))
+          .color(EmbedUtils.ERROR_COLOR)
+          .build();
 
     EmbedCreateSpec.Builder embedBuilder =
         EmbedCreateSpec.builder().title(title).color(EmbedUtils.DEFAULT_COLOR);
 
     if (role != null)
-      embedBuilder.addField(
-          ctx.localize("hero_stats.role"), StringUtils.capitalize(role.getFriendlyName()), true);
-
-    if (role == null && heroDetails != null && heroDetails.role() != null)
-      embedBuilder.addField(
-          ctx.localize("hero_stats.role"), StringUtils.capitalize(heroDetails.role()), true);
-
-    if (heroDetails != null && heroDetails.subrole() != null)
-      embedBuilder.addField(
-          ctx.localize("hero_stats.sub_role"), StringUtils.capitalize(heroDetails.subrole()), true);
+      embedBuilder.addField(ctx.localize("hero.role"), role.getFriendlyName(), true);
 
     embedBuilder
-        .addField(EmbedUtils.EMPTY_FIELD)
-        .addField(ctx.localize("hero_stats.platform"), platform.getFriendlyName(), true)
-        .addField(ctx.localize("hero_stats.gamemode"), StringUtils.capitalize(gamemode), true)
-        .addField(ctx.localize("hero_stats.region"), region.getFriendlyName(), true);
+        .addField(ctx.localize("hero.platform"), platform.getFriendlyName(), true)
+        .addField(ctx.localize("hero.gamemode"), StringUtils.capitalize(gamemode), true)
+        .addField(ctx.localize("hero.region"), region.getFriendlyName(), true);
 
-    if (map != null)
-      embedBuilder.addField(ctx.localize("hero_stats.map"), StringUtils.capitalize(map), true);
+    if (map != null) embedBuilder.addField(ctx.localize("hero.map"), map, true);
 
     if (competitiveDivision != null)
       embedBuilder.addField(
-          ctx.localize("hero_stats.competitive_division"),
-          competitiveDivision.getFriendlyName(),
-          true);
+          ctx.localize("hero.competitive_division"), competitiveDivision.getFriendlyName(), true);
 
     if (orderBy != null)
-      embedBuilder.addField(ctx.localize("hero_stats.order_by"), orderBy.getFriendlyName(), true);
+      embedBuilder.addField(ctx.localize("hero.order_by"), orderBy.getFriendlyName(), true);
 
     embedBuilder
-        .addField(EmbedUtils.EMPTY_FIELD)
-        .addField(ctx.localize("hero_stats.pickrate"), heroStats.pickrate() + "%", true)
-        .addField(ctx.localize("hero_stats.winrate"), heroStats.winrate() + "%", true);
+        .addField(
+            ctx.localize("hero.pickrate"),
+            (heroStats.pickrate() != null ? heroStats.pickrate() + "%" : "N/A"),
+            true)
+        .addField(
+            ctx.localize("hero.winrate"),
+            (heroStats.winrate() != null ? heroStats.winrate() + "%" : "N/A"),
+            true);
 
     if (thumbnail != null) embedBuilder.thumbnail(thumbnail);
 

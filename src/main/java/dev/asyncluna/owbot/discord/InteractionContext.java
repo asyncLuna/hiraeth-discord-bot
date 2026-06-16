@@ -12,9 +12,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @AllArgsConstructor(access = lombok.AccessLevel.PROTECTED)
+@Getter
 public abstract class InteractionContext<E extends InteractionCreateEvent> {
-  @Getter private final E event;
-  @Getter private final GuildSettings guildSettings;
+  private final E event;
+  private final GuildSettings guildSettings;
   private final I18nManager i18nManager;
 
   public GatewayDiscordClient getClient() {

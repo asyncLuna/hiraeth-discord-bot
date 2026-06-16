@@ -11,6 +11,7 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.ObjectMapper;
 
 @NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public final class HttpUtils {
@@ -23,6 +24,7 @@ public final class HttpUtils {
           .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
           .filter(overfastApiQueryParamFilter())
           .build();
+  public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private static ExchangeFilterFunction overfastApiQueryParamFilter() {
     return (request, next) ->

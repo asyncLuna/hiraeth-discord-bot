@@ -13,7 +13,8 @@ public record OverfastApiQueryParams(
     OverfastApiQueryParam.Region region,
     String map,
     OverfastApiQueryParam.CompetitiveDivision competitiveDivision,
-    OverfastApiQueryParam.OrderBy orderBy) {
+    OverfastApiQueryParam.OrderBy orderBy,
+    String heroKey) {
   public Map<String, String> asMap() {
     Map<String, String> result = new HashMap<>();
 
@@ -24,8 +25,9 @@ public record OverfastApiQueryParams(
     if (region != null) result.put("region", region.toString());
     if (map != null) result.put("map", map);
     if (competitiveDivision != null)
-      result.put("competitiveDivision", competitiveDivision.toString());
-    if (orderBy != null) result.put("orderBy", orderBy.toString());
+      result.put("competitive_division", competitiveDivision.toString());
+    if (orderBy != null) result.put("order_by", orderBy.toString());
+    if (heroKey != null) result.put("hero_key", heroKey);
 
     return result;
   }

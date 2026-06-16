@@ -1,8 +1,8 @@
 package dev.asyncluna.owbot.core.integration.overfastapi;
 
-import io.sentry.util.StringUtils;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class OverfastApiQueryParam {
