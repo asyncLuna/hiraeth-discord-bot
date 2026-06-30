@@ -2,7 +2,7 @@ spring:
   application:
     name: hiraeth-discord-bot
   mongodb:
-    uri: ${MONGO_URI:mongodb://localhost:27017/hiraethz}
+    uri: ${MONGO_URI:mongodb://localhost:27017/hiraeth}
 
 sentry:
   dsn: ${SENTRY_DSN:}
