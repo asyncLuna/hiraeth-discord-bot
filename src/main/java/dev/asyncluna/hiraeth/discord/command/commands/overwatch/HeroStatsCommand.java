@@ -1,4 +1,4 @@
-package dev.asyncluna.hiraeth.discord.command.commands;
+package dev.asyncluna.hiraeth.discord.command.commands.overwatch;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -123,7 +123,7 @@ public class HeroStatsCommand implements BotCommand {
   }
 
   @Override
-  public Mono<Void> handle(CommandContext ctx) {
+  public Mono<?> handle(CommandContext ctx) {
     OverfastApiQueryParam.Platform platform =
         ctx.getOptionAsString("platform")
             .map(OverfastApiQueryParam.Platform::fromApiName)
@@ -309,8 +309,7 @@ public class HeroStatsCommand implements BotCommand {
                       ActionRow.of(selectMenuOne),
                       ActionRow.of(selectMenuTwo),
                       ActionRow.of(detailsButton));
-            })
-        .then();
+            });
   }
 
   @Override

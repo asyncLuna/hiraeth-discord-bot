@@ -1,4 +1,4 @@
-package dev.asyncluna.hiraeth.discord.command.commands;
+package dev.asyncluna.hiraeth.discord.command.commands.overwatch;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -61,7 +61,7 @@ public class HeroDataCommand implements BotCommand {
       String userId, String heroKey, OverfastApiQueryParam.Locale locale) {}
 
   @Override
-  public Mono<Void> handle(CommandContext ctx) {
+  public Mono<?> handle(CommandContext ctx) {
     String heroKey = ctx.getOptionAsString("hero").orElseThrow().toLowerCase();
     OverfastApiQueryParam.Locale locale =
         ctx.getOptionAsString("locale").map(OverfastApiQueryParam.Locale::fromApiName).orElse(null);
@@ -90,8 +90,7 @@ public class HeroDataCommand implements BotCommand {
               return ctx.editReply()
                   .withEmbeds(embed)
                   .withComponents(ActionRow.of(abilitiesButton, perksButton));
-            })
-        .then();
+            });
   }
 
   @Override

@@ -5,7 +5,7 @@ import java.util.Collections;
 import reactor.core.publisher.Mono;
 
 public interface BotCommand {
-  Mono<Void> handle(CommandContext ctx);
+  Mono<?> handle(CommandContext ctx);
 
   default Mono<Void> autocomplete(ChatInputAutoCompleteEvent event) {
     return event.respondWithSuggestions(Collections.emptyList());

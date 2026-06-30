@@ -1,4 +1,4 @@
-package dev.asyncluna.hiraeth.discord.command.commands;
+package dev.asyncluna.hiraeth.discord.command.commands.overwatch;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -61,7 +61,7 @@ public class MapCommand implements BotCommand {
   }
 
   @Override
-  public Mono<Void> handle(CommandContext ctx) {
+  public Mono<?> handle(CommandContext ctx) {
     String gamemode =
         ctx.getOptionAsString("gamemode")
             .orElseThrow()
@@ -142,8 +142,7 @@ public class MapCommand implements BotCommand {
               return ctx.editReply()
                   .withEmbeds(embed)
                   .withComponents(ActionRow.of(selectMenuOne), ActionRow.of(selectMenuTwo));
-            })
-        .then();
+            });
   }
 
   @Override

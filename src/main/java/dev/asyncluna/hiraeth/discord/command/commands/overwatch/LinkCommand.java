@@ -1,4 +1,4 @@
-package dev.asyncluna.hiraeth.discord.command.commands;
+package dev.asyncluna.hiraeth.discord.command.commands.overwatch;
 
 import dev.asyncluna.hiraeth.core.service.AccountLinkService;
 import dev.asyncluna.hiraeth.core.util.AccountAlreadyLinkedException;
@@ -28,7 +28,7 @@ public class LinkCommand implements BotCommand {
   private final AccountLinkService accountLinkService;
 
   @Override
-  public Mono<Void> handle(CommandContext ctx) {
+  public Mono<?> handle(CommandContext ctx) {
     String discordId = ctx.getAuthor().getId().asString();
     String battleTag = ctx.getOptionAsString("battle_tag").orElse("");
     String battleTagDashed = battleTag.replace("#", "-");
@@ -57,7 +57,6 @@ public class LinkCommand implements BotCommand {
                   battleTag,
                   exception);
               return ctx.editReply(ctx.localize("link.failed", battleTag));
-            })
-        .then();
+            });
   }
 }

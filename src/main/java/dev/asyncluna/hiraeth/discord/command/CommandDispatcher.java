@@ -132,13 +132,14 @@ public class CommandDispatcher {
 
                                   return command
                                       .handle(ctx)
+                                      .then()
                                       .onErrorResume(
                                           commandException -> {
-                                            String userErrorMessage =
-                                                ctx.localize(
-                                                    "error.command_execution_failed_description");
+                                            String userErrorMessage;
 
-                                            if (commandException
+                                            if (commandException instanceof CommandException) {
+                                              userErrorMessage = commandException.getMessage();
+                                            } else if (commandException
                                                 instanceof WebClientResponseException exception) {
                                               String rawJson = exception.getResponseBodyAsString();
                                               log.debug(
@@ -147,14 +148,19 @@ public class CommandDispatcher {
                                                   rawJson);
 
                                               String extractedError = parseApiErrorMessage(rawJson);
-                                              if (extractedError != null) {
-                                                userErrorMessage = extractedError;
-                                              }
+                                              userErrorMessage =
+                                                  extractedError != null
+                                                      ? extractedError
+                                                      : ctx.localize(
+                                                          "error.command_execution_failed_description");
                                             } else {
                                               log.error(
                                                   "Unhandled exception executing command '/{}'",
                                                   commandName,
                                                   commandException);
+                                              userErrorMessage =
+                                                  ctx.localize(
+                                                      "error.command_execution_failed_description");
                                             }
 
                                             return ctx.editReply()
@@ -213,7 +219,7 @@ public class CommandDispatcher {
                         + "="
                         + option
                             .getValue()
-                            .map(ApplicationCommandInteractionOptionValue::asString)
+                            .map(ApplicationCommandInteractionOptionValue::getRaw)
                             .orElse("no-value"))
             .collect(Collectors.joining(", "));
 

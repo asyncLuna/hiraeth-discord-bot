@@ -1,4 +1,4 @@
-package dev.asyncluna.hiraeth.discord.command.commands;
+package dev.asyncluna.hiraeth.discord.command.commands.overwatch;
 
 import dev.asyncluna.hiraeth.discord.command.BotCommand;
 import dev.asyncluna.hiraeth.discord.command.Command;
@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 @Command(name = "ping", description = "Check the bot's latency.", ephemeral = true)
 public class PingCommand implements BotCommand {
   @Override
-  public Mono<Void> handle(CommandContext ctx) {
+  public Mono<?> handle(CommandContext ctx) {
     int shardIndex = ctx.getEvent().getShardInfo().getIndex();
 
     long latencyMs =
@@ -25,6 +25,6 @@ public class PingCommand implements BotCommand {
 
     String localizedResponse = ctx.localize("ping.response", latencyMs);
 
-    return ctx.editReply(localizedResponse).then();
+    return ctx.editReply(localizedResponse);
   }
 }

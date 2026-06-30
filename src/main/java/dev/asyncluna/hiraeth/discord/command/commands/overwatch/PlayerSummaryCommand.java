@@ -1,4 +1,4 @@
-package dev.asyncluna.hiraeth.discord.command.commands;
+package dev.asyncluna.hiraeth.discord.command.commands.overwatch;
 
 import dev.asyncluna.hiraeth.core.integration.overfastapi.OverfastApiService;
 import dev.asyncluna.hiraeth.core.integration.overfastapi.dto.PlayerCompetitiveRank;
@@ -30,7 +30,7 @@ public class PlayerSummaryCommand implements BotCommand {
   private final OverfastApiService overfastApiService;
 
   @Override
-  public Mono<Void> handle(CommandContext ctx) {
+  public Mono<?> handle(CommandContext ctx) {
     String playerId = ctx.getOptionAsString("player_id").orElseThrow();
 
     return overfastApiService
@@ -48,8 +48,7 @@ public class PlayerSummaryCommand implements BotCommand {
                             .title(ctx.localize("error.command_execution_failed_title"))
                             .description(ctx.localize("player.no_results"))
                             .color(EmbedUtils.ERROR_COLOR)
-                            .build()))
-        .then();
+                            .build()));
   }
 
   private EmbedCreateSpec createPlayerSummaryEmbed(

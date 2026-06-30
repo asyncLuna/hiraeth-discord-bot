@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -49,22 +50,28 @@ public class OverfastApiService {
 
     Function<UriBuilder, URI> uriFunction =
         builder -> {
-          builder.path(OverfastApiEndpoint.GET_A_LIST_OF_HEROES.getPath());
-          if (role != null) builder.queryParam("role", role.toString().toLowerCase());
-          if (locale != null) builder.queryParam("locale", locale.toString());
-          if (gamemode != null) builder.queryParam("gamemode", gamemode);
-          return builder.build();
+          UriComponentsBuilder uriBuilder =
+              UriComponentsBuilder.fromUriString(OverfastApiEndpoint.BASE_URL)
+                  .path(OverfastApiEndpoint.GET_A_LIST_OF_HEROES.getPath());
+          if (role != null) uriBuilder.queryParam("role", role.toString().toLowerCase());
+          if (locale != null) uriBuilder.queryParam("locale", locale.toString());
+          if (gamemode != null) uriBuilder.queryParam("gamemode", gamemode);
+          return uriBuilder.build().toUri();
         };
 
     return getWithCache(
             OverfastApiEndpoint.GET_A_LIST_OF_HEROES, cacheKey, uriFunction, HeroShort[].class)
-        .contextWrite(context -> context.put(HttpUtils.PARAM_CONTEXT_KEY, queryParams))
+        .contextWrite(context -> context.put(HttpUtils.PARAM_CONTEXT_KEY, queryParams.asMap()))
         .flatMapMany(Flux::fromArray);
   }
 
   public Flux<GamemodeDetails> getGamemodes() {
     Function<UriBuilder, URI> uriFunction =
-        builder -> builder.path(OverfastApiEndpoint.GET_A_LIST_OF_GAMEMODES.getPath()).build();
+        builder ->
+            UriComponentsBuilder.fromUriString(OverfastApiEndpoint.BASE_URL)
+                .path(OverfastApiEndpoint.GET_A_LIST_OF_GAMEMODES.getPath())
+                .build()
+                .toUri();
     return getWithCache(
             OverfastApiEndpoint.GET_A_LIST_OF_GAMEMODES,
             OverfastApiCache.ALL_KEY,
@@ -125,22 +132,25 @@ public class OverfastApiService {
 
     Function<UriBuilder, URI> uriFunction =
         builder -> {
-          builder.path(OverfastApiEndpoint.GET_HERO_STATS.getPath());
-          if (platform != null) builder.queryParam("platform", platform.toString().toLowerCase());
-          if (gamemode != null) builder.queryParam("gamemode", gamemode.toLowerCase());
-          if (region != null) builder.queryParam("region", region.toString().toLowerCase());
-          if (role != null) builder.queryParam("role", role.toString().toLowerCase());
-          if (map != null) builder.queryParam("map", map);
+          UriComponentsBuilder uriBuilder =
+              UriComponentsBuilder.fromUriString(OverfastApiEndpoint.BASE_URL)
+                  .path(OverfastApiEndpoint.GET_HERO_STATS.getPath());
+          if (platform != null)
+            uriBuilder.queryParam("platform", platform.toString().toLowerCase());
+          if (gamemode != null) uriBuilder.queryParam("gamemode", gamemode.toLowerCase());
+          if (region != null) uriBuilder.queryParam("region", region.toString().toLowerCase());
+          if (role != null) uriBuilder.queryParam("role", role.toString().toLowerCase());
+          if (map != null) uriBuilder.queryParam("map", map);
           if (competitiveDivision != null)
-            builder.queryParam(
+            uriBuilder.queryParam(
                 "competitive_division", competitiveDivision.toString().toLowerCase());
-          if (orderBy != null) builder.queryParam("order_by", orderBy.toString().toLowerCase());
-          return builder.build();
+          if (orderBy != null) uriBuilder.queryParam("order_by", orderBy.toString().toLowerCase());
+          return uriBuilder.build().toUri();
         };
 
     return getWithCache(
             OverfastApiEndpoint.GET_HERO_STATS, cacheKey, uriFunction, HeroStatsSummary[].class)
-        .contextWrite(context -> context.put(HttpUtils.PARAM_CONTEXT_KEY, queryParams))
+        .contextWrite(context -> context.put(HttpUtils.PARAM_CONTEXT_KEY, queryParams.asMap()))
         .flatMapMany(Flux::fromArray);
   }
 
@@ -160,13 +170,15 @@ public class OverfastApiService {
 
     Function<UriBuilder, URI> uriFunction =
         builder -> {
-          builder.path(OverfastApiEndpoint.GET_A_LIST_OF_MAPS.getPath());
-          if (gamemode != null) builder.queryParam("gamemode", gamemode);
-          return builder.build();
+          UriComponentsBuilder uriBuilder =
+              UriComponentsBuilder.fromUriString(OverfastApiEndpoint.BASE_URL)
+                  .path(OverfastApiEndpoint.GET_A_LIST_OF_MAPS.getPath());
+          if (gamemode != null) uriBuilder.queryParam("gamemode", gamemode);
+          return uriBuilder.build().toUri();
         };
 
     return getWithCache(OverfastApiEndpoint.GET_A_LIST_OF_MAPS, cacheKey, uriFunction, Map[].class)
-        .contextWrite(context -> context.put(HttpUtils.PARAM_CONTEXT_KEY, queryParams))
+        .contextWrite(context -> context.put(HttpUtils.PARAM_CONTEXT_KEY, queryParams.asMap()))
         .flatMapMany(Flux::fromArray);
   }
 
@@ -188,13 +200,15 @@ public class OverfastApiService {
 
     Function<UriBuilder, URI> uriFunction =
         builder -> {
-          builder.path(OverfastApiEndpoint.GET_HERO_DATA.getPath(heroKey));
-          if (locale != null) builder.queryParam("locale", locale.toString());
-          return builder.build();
+          UriComponentsBuilder uriBuilder =
+              UriComponentsBuilder.fromUriString(OverfastApiEndpoint.BASE_URL)
+                  .path(OverfastApiEndpoint.GET_HERO_DATA.getPath(heroKey));
+          if (locale != null) uriBuilder.queryParam("locale", locale.toString());
+          return uriBuilder.build().toUri();
         };
 
     return getWithCache(OverfastApiEndpoint.GET_HERO_DATA, cacheKey, uriFunction, Hero.class)
-        .contextWrite(context -> context.put(HttpUtils.PARAM_CONTEXT_KEY, queryParams));
+        .contextWrite(context -> context.put(HttpUtils.PARAM_CONTEXT_KEY, queryParams.asMap()));
   }
 
   public Flux<RoleDetail> getRoles() {
@@ -213,14 +227,16 @@ public class OverfastApiService {
 
     Function<UriBuilder, URI> uriFunction =
         builder -> {
-          builder.path(OverfastApiEndpoint.GET_A_LIST_OF_ROLES.getPath());
-          if (locale != null) builder.queryParam("locale", locale.toString());
-          return builder.build();
+          UriComponentsBuilder uriBuilder =
+              UriComponentsBuilder.fromUriString(OverfastApiEndpoint.BASE_URL)
+                  .path(OverfastApiEndpoint.GET_A_LIST_OF_ROLES.getPath());
+          if (locale != null) uriBuilder.queryParam("locale", locale.toString());
+          return uriBuilder.build().toUri();
         };
 
     return getWithCache(
             OverfastApiEndpoint.GET_A_LIST_OF_ROLES, cacheKey, uriFunction, RoleDetail[].class)
-        .contextWrite(context -> context.put(HttpUtils.PARAM_CONTEXT_KEY, queryParams))
+        .contextWrite(context -> context.put(HttpUtils.PARAM_CONTEXT_KEY, queryParams.asMap()))
         .flatMapMany(Flux::fromArray);
   }
 
@@ -232,7 +248,10 @@ public class OverfastApiService {
 
     Function<UriBuilder, URI> uriFunction =
         builder ->
-            builder.path(OverfastApiEndpoint.GET_PLAYER_SUMMARY.getPath(formattedPlayerId)).build();
+            UriComponentsBuilder.fromUriString(OverfastApiEndpoint.BASE_URL)
+                .path(OverfastApiEndpoint.GET_PLAYER_SUMMARY.getPath(formattedPlayerId))
+                .build()
+                .toUri();
 
     return getWithCache(
         OverfastApiEndpoint.GET_PLAYER_SUMMARY, cacheKey, uriFunction, PlayerSummary.class);

@@ -10,6 +10,7 @@ import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.Attachment;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.Channel;
+import discord4j.core.object.entity.channel.MessageChannel;
 import java.util.Optional;
 import reactor.core.publisher.Mono;
 
@@ -53,5 +54,9 @@ public class CommandContext extends DeferrableInteractionContext<ChatInputIntera
 
   public Optional<Attachment> getOptionAsAttachment(String name) {
     return getOption(name).map(ApplicationCommandInteractionOptionValue::asAttachment);
+  }
+
+  public Mono<MessageChannel> getChannel() {
+    return getEvent().getInteraction().getChannel();
   }
 }
