@@ -6,7 +6,7 @@ plugins {
 
 group = "dev.asyncluna"
 version = "0.0.1-SNAPSHOT"
-description = "overwatch-discord-bot"
+description = "hiraeth-discord-bot"
 
 java {
     toolchain {
@@ -21,6 +21,7 @@ repositories {
 extra["sentryVersion"] = "8.27.0"
 extra["discord4jVersion"] = "3.3.2"
 extra["commonsLang3Version"] = "3.20.0"
+extra["commonsTextVersion"] = "1.15.0"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
@@ -29,6 +30,7 @@ dependencies {
     implementation("com.discord4j:discord4j-core:${property("discord4jVersion")}")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.apache.commons:commons-lang3:${property("commonsLang3Version")}")
+    implementation("org.apache.commons:commons-text:${property("commonsTextVersion")}")
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.projectlombok:lombok")

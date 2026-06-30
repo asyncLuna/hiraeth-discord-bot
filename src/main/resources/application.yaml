@@ -1,8 +1,8 @@
 spring:
   application:
-    name: overwatch-discord-bot
+    name: hiraeth-discord-bot
   mongodb:
-    uri: ${MONGO_URI:mongodb://localhost:27017/overwatch_bot}
+    uri: ${MONGO_URI:mongodb://localhost:27017/hiraethz}
 
 sentry:
   dsn: ${SENTRY_DSN:}
