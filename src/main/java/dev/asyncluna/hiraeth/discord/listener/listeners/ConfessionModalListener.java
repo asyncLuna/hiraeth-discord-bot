@@ -97,7 +97,7 @@ public class ConfessionModalListener implements EventListener<ModalSubmitInterac
                                               channel ->
                                                   channel
                                                       .getName()
-                                                      .equalsIgnoreCase("confessions-log"))
+                                                      .equalsIgnoreCase("confessions﹒log"))
                                           .findFirst()
                                           .orElse(null);
 
