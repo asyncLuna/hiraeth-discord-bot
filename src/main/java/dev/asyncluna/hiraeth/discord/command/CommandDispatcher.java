@@ -8,7 +8,7 @@ import dev.asyncluna.hiraeth.discord.util.EmbedUtils;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ChatInputAutoCompleteEvent;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
-import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
+import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.discordjson.json.ApplicationCommandOptionData;
 import discord4j.discordjson.json.ApplicationCommandRequest;
@@ -22,7 +22,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -201,37 +200,63 @@ public class CommandDispatcher {
   }
 
   private ApplicationCommandOptionData mapOption(CommandOption option) {
+    List<ApplicationCommandOptionData> subOptions =
+        Arrays.stream(option.subCommands()).map(this::mapSubCommandOption).toList();
+
     return ApplicationCommandOptionData.builder()
         .name(option.name())
         .description(option.description())
         .type(option.type().getValue())
         .required(option.required())
         .autocomplete(option.autocomplete())
+        .addAllOptions(subOptions)
+        .build();
+  }
+
+  private ApplicationCommandOptionData mapSubCommandOption(SubCommand subCommand) {
+    return ApplicationCommandOptionData.builder()
+        .name(subCommand.name())
+        .description(subCommand.description())
+        .type(subCommand.type().getValue())
+        .required(subCommand.required())
+        .autocomplete(subCommand.autocomplete())
         .build();
   }
 
   private void logCommandExecution(ChatInputInteractionEvent event, String commandName) {
-    String optionsLog =
-        event.getOptions().stream()
-            .map(
-                option ->
-                    option.getName()
-                        + "="
-                        + option
-                            .getValue()
-                            .map(ApplicationCommandInteractionOptionValue::getRaw)
-                            .orElse("no-value"))
-            .collect(Collectors.joining(", "));
+    StringBuilder commandBuilder = new StringBuilder("/").append(commandName);
+    List<String> optionsList = new ArrayList<>();
 
-    String formattedOptions = optionsLog.isEmpty() ? "" : " " + optionsLog;
+    buildOptionsLog(event.getOptions(), commandBuilder, optionsList);
+
+    String formattedOptions =
+        optionsList.isEmpty() ? "" : " [" + String.join(", ", optionsList) + "]";
 
     log.info(
-        "Dispatching command: '/{}{}' | User: {} ({}) | Guild: {}",
-        commandName,
+        "Dispatching command: '{}{}' | User: {} ({}) | Guild: {}",
+        commandBuilder,
         formattedOptions,
         event.getInteraction().getUser().getUsername(),
         event.getInteraction().getUser().getId().asString(),
         event.getInteraction().getGuildId().map(Snowflake::asString).orElse("DM"));
+  }
+
+  private void buildOptionsLog(
+      List<ApplicationCommandInteractionOption> options,
+      StringBuilder commandBuilder,
+      List<String> optionsList) {
+
+    for (ApplicationCommandInteractionOption option : options) {
+      if (option.getValue().isPresent()) {
+        optionsList.add(option.getName() + "=" + option.getValue().get().getRaw());
+      } else {
+        commandBuilder.append(" ").append(option.getName());
+
+        if (!option.getOptions().isEmpty()) {
+          buildOptionsLog(option.getOptions(), commandBuilder, optionsList);
+        }
+      }
+    }
   }
 
   private String parseApiErrorMessage(String json) {

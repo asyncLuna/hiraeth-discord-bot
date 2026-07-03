@@ -1,8 +1,8 @@
 package dev.asyncluna.hiraeth.core.service;
 
+import dev.asyncluna.hiraeth.core.exception.AccountAlreadyLinkedException;
 import dev.asyncluna.hiraeth.core.model.AccountLink;
 import dev.asyncluna.hiraeth.core.repository.AccountLinkRepository;
-import dev.asyncluna.hiraeth.core.util.AccountAlreadyLinkedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;

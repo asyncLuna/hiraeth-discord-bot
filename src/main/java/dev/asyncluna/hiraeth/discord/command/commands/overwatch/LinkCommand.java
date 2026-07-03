@@ -1,7 +1,7 @@
 package dev.asyncluna.hiraeth.discord.command.commands.overwatch;
 
+import dev.asyncluna.hiraeth.core.exception.AccountAlreadyLinkedException;
 import dev.asyncluna.hiraeth.core.service.AccountLinkService;
-import dev.asyncluna.hiraeth.core.util.AccountAlreadyLinkedException;
 import dev.asyncluna.hiraeth.discord.command.BotCommand;
 import dev.asyncluna.hiraeth.discord.command.Command;
 import dev.asyncluna.hiraeth.discord.command.CommandContext;

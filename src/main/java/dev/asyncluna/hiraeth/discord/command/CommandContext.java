@@ -21,7 +21,14 @@ public class CommandContext extends DeferrableInteractionContext<ChatInputIntera
   }
 
   public Optional<ApplicationCommandInteractionOptionValue> getOption(String name) {
-    return getEvent().getOption(name).flatMap(ApplicationCommandInteractionOption::getValue);
+    Optional<ApplicationCommandInteractionOption> topOption = getEvent().getOption(name);
+    if (topOption.isPresent())
+      return topOption.flatMap(ApplicationCommandInteractionOption::getValue);
+
+    return getEvent().getOptions().stream()
+        .flatMap(subOption -> subOption.getOption(name).stream())
+        .findFirst()
+        .flatMap(ApplicationCommandInteractionOption::getValue);
   }
 
   public Optional<String> getOptionAsString(String name) {
