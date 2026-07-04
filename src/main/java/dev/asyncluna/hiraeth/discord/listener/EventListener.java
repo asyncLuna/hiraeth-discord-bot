@@ -1,6 +1,7 @@
 package dev.asyncluna.hiraeth.discord.listener;
 
 import discord4j.core.event.domain.Event;
+import io.sentry.Sentry;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import org.slf4j.Logger;
@@ -33,6 +34,7 @@ public interface EventListener<T extends Event> {
 
   default Mono<Void> handleException(Throwable exception) {
     log.error("Unhandled error processing event {}", getEventType().getSimpleName(), exception);
+    Sentry.captureException(exception);
     return Mono.empty();
   }
 }

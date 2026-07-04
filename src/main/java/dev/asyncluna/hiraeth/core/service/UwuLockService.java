@@ -3,14 +3,17 @@ package dev.asyncluna.hiraeth.core.service;
 import dev.asyncluna.hiraeth.core.model.UwuLock;
 import dev.asyncluna.hiraeth.core.repository.UwuLockRepository;
 import dev.asyncluna.hiraeth.core.util.Uwuifier;
+import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.Webhook;
+import discord4j.core.object.entity.channel.ThreadChannel;
 import discord4j.core.object.entity.channel.TopLevelGuildMessageChannel;
 import discord4j.core.spec.WebhookCreateSpec;
 import discord4j.core.spec.WebhookExecuteSpec;
 import discord4j.rest.util.AllowedMentions;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
@@ -73,26 +76,38 @@ public class UwuLockService {
 
     return message
         .getChannel()
-        .cast(TopLevelGuildMessageChannel.class)
         .flatMap(
-            channel ->
-                message
-                    .delete()
-                    .then(getOrCreateWebhook(channel))
-                    .flatMap(
-                        webhook -> {
-                          String finalContent = determineMessageContent(message);
+            channel -> {
+              Mono<TopLevelGuildMessageChannel> parentChannelMono;
+              Optional<Snowflake> threadId;
 
-                          WebhookExecuteSpec spec =
-                              WebhookExecuteSpec.builder()
-                                  .username(member.getDisplayName())
-                                  .avatarUrl(member.getAvatarUrl())
-                                  .content(finalContent)
-                                  .allowedMentions(AllowedMentions.builder().build())
-                                  .build();
+              if (channel instanceof ThreadChannel thread) {
+                parentChannelMono = thread.getParent().cast(TopLevelGuildMessageChannel.class);
+                threadId = Optional.of(thread.getId());
+              } else if (channel instanceof TopLevelGuildMessageChannel guildChannel) {
+                parentChannelMono = Mono.just(guildChannel);
+                threadId = Optional.empty();
+              } else return Mono.empty();
 
-                          return webhook.execute(spec);
-                        }))
+              return parentChannelMono.flatMap(
+                  parentChannel ->
+                      message
+                          .delete()
+                          .then(getOrCreateWebhook(parentChannel))
+                          .flatMap(
+                              webhook -> {
+                                WebhookExecuteSpec.Builder specBuilder =
+                                    WebhookExecuteSpec.builder()
+                                        .username(member.getDisplayName())
+                                        .avatarUrl(member.getAvatarUrl())
+                                        .content(determineMessageContent(message))
+                                        .allowedMentions(AllowedMentions.builder().build());
+
+                                threadId.ifPresent(specBuilder::threadId);
+
+                                return webhook.execute(specBuilder.build());
+                              }));
+            })
         .then();
   }
 
