@@ -2,6 +2,7 @@ package dev.asyncluna.hiraeth.discord.listener.listeners;
 
 import dev.asyncluna.hiraeth.discord.listener.EventListener;
 import dev.asyncluna.hiraeth.discord.util.DiscordConstants;
+import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.object.component.FileUpload;
 import discord4j.core.object.component.Label;
@@ -23,7 +24,7 @@ public class ConfessionButtonListener implements EventListener<ButtonInteraction
     log.info(
         "Presenting a modal | Modal: {} | Guild: {} | User: {} ({})",
         "confession_modal",
-        event.getInteraction().getGuildId().orElse(null),
+        event.getInteraction().getGuildId().map(Snowflake::asString).orElse("N/A"),
         event.getInteraction().getUser().getUsername(),
         event.getInteraction().getUser().getId().asString());
 

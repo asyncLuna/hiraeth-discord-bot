@@ -1,6 +1,7 @@
 package dev.asyncluna.hiraeth.discord.listener.listeners;
 
 import dev.asyncluna.hiraeth.discord.listener.EventListener;
+import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ModalSubmitInteractionEvent;
 import discord4j.core.object.component.ActionRow;
 import discord4j.core.object.component.Button;
@@ -31,7 +32,8 @@ public class ConfessionModalListener implements EventListener<ModalSubmitInterac
     if (!event.getCustomId().equals("confession_modal")) return Mono.empty();
 
     log.info(
-        "Received confession modal submission from user: {} ({})",
+        "Received confession modal submission | Guild: {} | User: {} ({})",
+        event.getInteraction().getGuildId().map(Snowflake::asString).orElse("N/A"),
         event.getInteraction().getUser().getUsername(),
         event.getInteraction().getUser().getId().asString());
 

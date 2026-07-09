@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "dev.asyncluna"
-version = "0.1.2-SNAPSHOT"
+version = "0.1.3-SNAPSHOT"
 description = "hiraeth-discord-bot"
 
 java {
