@@ -1,31 +1,67 @@
 services:
   mongo:
-    image: 'mongo:latest'
+    image: mongo:8.3.4
     container_name: hiraeth-mongo
+
     environment:
-      - MONGO_INITDB_DATABASE=${MONGO_DATABASE}
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+
+    command:
+      - mongod
+      - --wiredTigerCacheSizeGB
+      - "0.25"
+
     volumes:
       - mongo-data:/data/db
+
     networks:
       - backend
+
+    restart: unless-stopped
+
+    cpus: "0.20"
+
+    mem_limit: 384m
+    mem_reservation: 256m
+    memswap_limit: 512m
+
+    pids_limit: 256
 
   java:
     build: ./
     container_name: hiraeth-java
+
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DATABASE}?authSource=admin
-      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
-      - SENTRY_DSN=${SENTRY_DSN}
-      - SENTRY_SEND_DEFAULT_PII=${SENTRY_SEND_DEFAULT_PII}
-      - SENTRY_LOGS_ENABLED=${SENTRY_LOGS_ENABLED}
-    depends_on:
-      - mongo
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DATABASE}?authSource=admin
+
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+
+      SENTRY_DSN: ${SENTRY_DSN}
+      SENTRY_SEND_DEFAULT_PII: ${SENTRY_SEND_DEFAULT_PII}
+      SENTRY_LOGS_ENABLED: ${SENTRY_LOGS_ENABLED}
+
+      JAVA_TOOL_OPTIONS: >-
+        -Xms128m
+        -Xmx256m
+        -XX:+UseSerialGC
+        -XX:ActiveProcessorCount=1
+        -XX:+ExitOnOutOfMemoryError
+
     networks:
       - backend
+
     restart: unless-stopped
+
+    cpus: "0.25"
+
+    mem_limit: 384m
+    mem_reservation: 256m
+    memswap_limit: 512m
+
+    pids_limit: 256
 
 volumes:
   mongo-data:

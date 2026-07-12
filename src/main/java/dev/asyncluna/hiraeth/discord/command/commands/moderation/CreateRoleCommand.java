@@ -111,8 +111,7 @@ public class CreateRoleCommand implements BotCommand {
       Optional<String> iconDataUri) {
     RoleCreateSpec baseRoleSpec =
         RoleCreateSpec.create().withName(roleName).withColor(color).withMentionable(false);
-    RoleCreateSpec roleSpec =
-        iconDataUri.map(baseRoleSpec::withIcon).orElse(baseRoleSpec);
+    RoleCreateSpec roleSpec = iconDataUri.map(baseRoleSpec::withIcon).orElse(baseRoleSpec);
 
     return guild
         .getMemberById(user.getId())
@@ -120,7 +119,8 @@ public class CreateRoleCommand implements BotCommand {
             Mono.error(new CommandException(ctx.localize("create_role.error.user_not_found"))))
         .flatMap(
             member ->
-                guild.createRole(roleSpec)
+                guild
+                    .createRole(roleSpec)
                     .flatMap(role -> member.addRole(role.getId()).thenReturn(role))
                     .flatMap(
                         role ->
@@ -178,14 +178,16 @@ public class CreateRoleCommand implements BotCommand {
                         attachment.getUrl(),
                         exception);
                     return Mono.error(
-                        new CommandException(ctx.localize("create_role.error.icon_download_failed")));
+                        new CommandException(
+                            ctx.localize("create_role.error.icon_download_failed")));
                   });
         });
   }
 
   private Optional<String> resolveImageMimeType(Attachment attachment) {
     Optional<String> contentType = attachment.getContentType();
-    if (contentType.isPresent() && contentType.get().toLowerCase(Locale.ROOT).startsWith("image/")) {
+    if (contentType.isPresent()
+        && contentType.get().toLowerCase(Locale.ROOT).startsWith("image/")) {
       return contentType;
     }
 
