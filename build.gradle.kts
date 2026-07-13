@@ -1,3 +1,5 @@
+import org.gradle.internal.impldep.org.eclipse.jgit.diff.DiffDriver
+
 plugins {
     java
     id("org.springframework.boot") version "4.0.6"
@@ -5,7 +7,7 @@ plugins {
 }
 
 group = "dev.asyncluna"
-version = "0.1.4-SNAPSHOT"
+version = "0.1.5-SNAPSHOT"
 description = "hiraeth-discord-bot"
 
 java {

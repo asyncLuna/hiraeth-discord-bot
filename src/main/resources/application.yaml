@@ -5,6 +5,9 @@ spring:
     uri: ${SPRING_MONGODB_URI:}
   main:
     banner-mode: OFF
+  data:
+    mongodb:
+      auto-index-creation: true
 
 sentry:
   dsn: ${SENTRY_DSN:}
@@ -24,3 +27,12 @@ sentry:
 discord:
   bot:
     token: ${DISCORD_BOT_TOKEN:}
+
+hiraeth:
+  member-of-the-week:
+    guild-id: "1520153947644493905"
+    channel-id: "1526320737059737781"
+    log-channel-id: "1526324522909696264"
+    role-id: "1526317499862356018"
+    timezone: "Europe/Warsaw"
+    cron: "0 0/5 * ? * *"
