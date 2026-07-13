@@ -23,7 +23,11 @@ public class DiscordClientFactory {
         .gateway()
         .setEnabledIntents(
             IntentSet.of(
-                Intent.GUILDS, Intent.GUILD_MEMBERS, Intent.GUILD_MESSAGES, Intent.MESSAGE_CONTENT))
+                Intent.GUILDS,
+                Intent.GUILD_MEMBERS,
+                Intent.GUILD_MESSAGES,
+                Intent.MESSAGE_CONTENT,
+                Intent.GUILD_MODERATION))
         .setInitialPresence(
             shardInfo -> ClientPresence.online(ClientActivity.custom("Pocketing you")))
         .login()

@@ -18,7 +18,11 @@ import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
-@Command(name = "uwulock", description = "Manage user uwu blocks.", defaultMemberPermissions = "8")
+@Command(
+    name = "uwulock",
+    description = "Manage user uwu blocks.",
+    defaultMemberPermissions = "8" // ADMINISTRATOR
+    )
 @CommandOption(
     name = "apply",
     description = "Lock a user into talking only in uwu speak.",

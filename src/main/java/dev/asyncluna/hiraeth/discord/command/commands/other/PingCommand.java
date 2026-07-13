@@ -1,4 +1,4 @@
-package dev.asyncluna.hiraeth.discord.command.commands.overwatch;
+package dev.asyncluna.hiraeth.discord.command.commands.other;
 
 import dev.asyncluna.hiraeth.discord.command.BotCommand;
 import dev.asyncluna.hiraeth.discord.command.Command;
