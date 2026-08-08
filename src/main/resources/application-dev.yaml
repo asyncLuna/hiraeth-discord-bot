@@ -1,6 +1,6 @@
 logging:
   level:
-    dev.asyncluna.owbot: DEBUG
+    dev.asyncluna.zenith: DEBUG
 sentry:
   environment: development
   debug: true

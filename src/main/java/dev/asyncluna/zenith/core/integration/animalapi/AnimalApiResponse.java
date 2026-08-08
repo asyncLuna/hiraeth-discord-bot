@@ -1,0 +1,4 @@
+package dev.asyncluna.zenith.core.integration.animalapi;
+
+public record AnimalApiResponse(
+    String animal, String image, String fact, String image_id, String fact_id) {}

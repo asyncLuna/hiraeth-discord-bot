@@ -1,1 +1,1 @@
-rootProject.name = "hiraeth-discord-bot"
+rootProject.name = "zenith-discord-bot"
