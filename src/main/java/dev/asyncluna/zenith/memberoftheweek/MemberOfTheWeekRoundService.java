@@ -105,6 +105,71 @@ public class MemberOfTheWeekRoundService {
     return getRounds(guildId).next();
   }
 
+  /**
+   * Refreshes the persisted voting message without creating a second message.
+   * This is useful after changing translations or embed formatting while a round
+   * is still active.
+   */
+  public Mono<MemberOfTheWeekRound> refreshVotingMessage(MemberOfTheWeekRound round) {
+    if (round.getMessageId() == null || round.getMessageId().isBlank()) {
+      log.warn("Active Member of the Week round has no persisted message ID | roundId={}", round.getId());
+      return Mono.just(round);
+    }
+
+    return getVotingChannel(round.getChannelId())
+        .flatMap(channel -> channel.getMessageById(Snowflake.of(round.getMessageId())))
+        .flatMap(
+            message ->
+                getGuildLocale()
+                    .flatMap(
+                        locale -> {
+                          String title =
+                              i18nManager.localize("member_of_the_week.embed.title", locale);
+                          String description = createVotingDescription(round, locale);
+
+                          boolean needsUpdate =
+                              message.getEmbeds().stream()
+                                  .findFirst()
+                                  .map(
+                                      current ->
+                                          !current.getTitle().orElse("").equals(title)
+                                              || !current
+                                                  .getDescription()
+                                                  .orElse("")
+                                                  .equals(description))
+                                  .orElse(true);
+
+                          if (!needsUpdate) {
+                            return Mono.just(round);
+                          }
+
+                          EmbedCreateSpec updatedEmbed =
+                              EmbedCreateSpec.builder()
+                                  .color(EmbedUtils.DEFAULT_COLOR)
+                                  .title(title)
+                                  .description(description)
+                                  .timestamp(Instant.now(memberOfTheWeekClock))
+                                  .build();
+
+                          return message.edit().withEmbeds(updatedEmbed).thenReturn(round);
+                        }))
+        .doOnNext(
+            refreshedRound ->
+                log.info(
+                    "Checked Member of the Week voting message | roundId={} | messageId={}",
+                    refreshedRound.getId(),
+                    refreshedRound.getMessageId()))
+        .onErrorResume(
+            error -> {
+              log.warn(
+                  "Could not refresh Member of the Week voting message | roundId={} | messageId={}",
+                  round.getId(),
+                  round.getMessageId(),
+                  error);
+              return Mono.just(round);
+            });
+  }
+
   public Mono<List<MemberOfTheWeekVoteCount>> getVoteCounts(String guildId, String roundId) {
     Aggregation aggregation =
         newAggregation(
@@ -284,12 +349,7 @@ public class MemberOfTheWeekRoundService {
                       .withMaxValues(1);
 
               EmbedCreateSpec embed =
-                  EmbedCreateSpec.builder()
-                      .color(EmbedUtils.DEFAULT_COLOR)
-                      .title(i18nManager.localize("member_of_the_week.embed.title", locale))
-                      .description(createVotingDescription(round, locale))
-                      .timestamp(Instant.now(memberOfTheWeekClock))
-                      .build();
+                  createVotingEmbed(round, locale);
 
               MessageCreateSpec.Builder messageBuilder =
                   MessageCreateSpec.builder()
@@ -313,6 +373,15 @@ public class MemberOfTheWeekRoundService {
                               properties.channelId(),
                               createdMessage.getId().asString()));
             });
+  }
+
+  private EmbedCreateSpec createVotingEmbed(MemberOfTheWeekRound round, Locale locale) {
+    return EmbedCreateSpec.builder()
+        .color(EmbedUtils.DEFAULT_COLOR)
+        .title(i18nManager.localize("member_of_the_week.embed.title", locale))
+        .description(createVotingDescription(round, locale))
+        .timestamp(Instant.now(memberOfTheWeekClock))
+        .build();
   }
 
   private String createVotingDescription(MemberOfTheWeekRound round, Locale locale) {
@@ -479,18 +548,22 @@ public class MemberOfTheWeekRoundService {
         .map(GuildSettings::getMemberOfTheWeekChannelId)
         .filter(channelId -> channelId != null && !channelId.isBlank())
         .defaultIfEmpty(properties.channelId())
-        .flatMap(
-            configuredChannelId -> {
-              Snowflake channelId = Snowflake.of(configuredChannelId);
+        .flatMap(this::getVotingChannel);
+  }
 
-              return gatewayDiscordClient
-                  .getChannelById(channelId)
-                  .ofType(MessageChannel.class)
-                  .switchIfEmpty(
-                      Mono.error(
-                          new IllegalStateException(
-                              "Member of the Week channel does not exist or is not a message channel: "
-                                  + configuredChannelId)));
-            });
+  private Mono<MessageChannel> getVotingChannel(String configuredChannelId) {
+    String channelId =
+        configuredChannelId == null || configuredChannelId.isBlank()
+            ? properties.channelId()
+            : configuredChannelId;
+
+    return gatewayDiscordClient
+        .getChannelById(Snowflake.of(channelId))
+        .ofType(MessageChannel.class)
+        .switchIfEmpty(
+            Mono.error(
+                new IllegalStateException(
+                    "Member of the Week channel does not exist or is not a message channel: "
+                        + channelId)));
   }
 }

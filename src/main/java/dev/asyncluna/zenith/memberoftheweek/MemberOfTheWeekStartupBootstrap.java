@@ -65,7 +65,7 @@ public class MemberOfTheWeekStartupBootstrap {
           round.getId(),
           round.getEndsAt());
 
-      return Mono.just(round);
+      return roundService.refreshVotingMessage(round);
     }
 
     log.info(
