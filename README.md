@@ -1,17 +1,108 @@
 # Zenith Discord Bot
 
-Zenith is a Spring Boot Discord bot for community utilities, Overwatch information, and server-specific features. It uses Discord4J for Discord interactions, MongoDB for persistent state, and external APIs for animal content and Overwatch data.
+![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.6-6DB33F?logo=springboot&logoColor=white)
+![Discord4J](https://img.shields.io/badge/Discord4J-3.3.2-5865F2?logo=discord&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-8.3-47A248?logo=mongodb&logoColor=white)
+![Gradle](https://img.shields.io/badge/Gradle-Kotlin%20DSL-02303A?logo=gradle&logoColor=white)
+
+Zenith is a reactive Spring Boot Discord bot for community utilities, Overwatch data, and server-specific automation.
+
+The project is organized as a modular monolith: Discord events enter through Discord4J, commands and listeners delegate to focused feature modules, and shared services handle persistence, integrations, localization, and error reporting.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Discord[Discord gateway]
+    Bot[Discord4J client]
+    Commands[Commands and event listeners]
+    Core[Core services and feature modules]
+    Mongo[(MongoDB<br/>persistent state)]
+    Overfast[OverFast API<br/>Overwatch data]
+    Animality[Animality API<br/>images and facts]
+    Quartz[Quartz scheduler<br/>Member of the Week]
+    Sentry[Sentry<br/>optional observability]
+
+    Discord <--> Bot
+    Bot --> Commands
+    Commands --> Core
+    Core <--> Mongo
+    Core --> Overfast
+    Core --> Animality
+    Quartz --> Core
+    Core -. errors, traces, logs .-> Sentry
+```
+
+### Processing flows
+
+1. Discord sends gateway events to the Discord4J client.
+2. The command registry synchronizes global slash commands when the application starts.
+3. Commands and component listeners execute feature workflows using reactive services.
+4. Guild settings, account links, uwu locks, voting rounds, and votes are stored in MongoDB.
+5. Overwatch and animal commands call their external APIs through WebClient-backed integrations with in-memory TTL caches.
+6. Quartz opens, expires, and rotates Member of the Week voting rounds and the bot announces results in Discord.
+
+MongoDB is the durable store for application state. External APIs are used for read-only game and animal content, while Sentry is optional and can be disabled by leaving its DSN empty.
 
 ## Features
 
-- Overwatch player summaries, competitive ranks, hero data, hero statistics, maps, and top-hero statistics through the OverFast API.
-- Discord-to-Overwatch account linking.
-- Community tools including anonymous confessions, message purging, colored role creation, configurable server settings, and button-based workflows.
-- Member of the Week voting rounds with MongoDB persistence and Quartz scheduling.
-- Random animal images and facts through Animality.
-- English and Polish translations.
-- Optional Sentry error reporting, tracing, profiling, and logs.
-- Docker Compose deployment with MongoDB and resource limits suitable for a small bot host.
+- Global Discord slash-command registration with a small annotation-based command framework
+- Overwatch player summaries, competitive ranks, hero data, hero statistics, maps, and top-hero statistics
+- Discord-to-Overwatch account linking
+- Anonymous confessions with optional replies, publishing channels, and author logs
+- Member of the Week voting rounds with one-vote-per-member validation and scheduled rotation
+- Server settings for confessions, voting, and moderation logs
+- Message purging, colored role creation, predefined button workflows, and uwu locks
+- Random animal images and facts
+- English and Polish localization
+- Reactive MongoDB persistence and WebClient integrations
+- Optional Sentry error reporting, tracing, profiling, and log collection
+- Docker Compose deployment with MongoDB and constrained container resources
+
+## Technology stack
+
+| Area | Technology |
+| --- | --- |
+| Language | Java 21 |
+| Framework | Spring Boot 4.0.6 |
+| Discord | Discord4J 3.3.2 |
+| Reactive runtime | Project Reactor, Spring WebFlux |
+| Persistence | Spring Data MongoDB Reactive |
+| Database | MongoDB 8.3.4 in Docker Compose |
+| Scheduling | Quartz |
+| External data | OverFast API, Animality API |
+| Observability | Sentry Spring Boot integration |
+| Testing | JUnit 5, Spring Boot Test, MongoDB reactive test support |
+| Build | Gradle Kotlin DSL |
+
+## Prerequisites
+
+- JDK 21
+- Docker Engine with Docker Compose, or an accessible MongoDB instance
+- A Discord application and bot token
+- A bot installation with the permissions required by the enabled commands
+
+Zenith requests the `GUILDS`, `GUILD_MEMBERS`, `GUILD_MESSAGES`, `MESSAGE_CONTENT`, and `GUILD_MODERATION` gateway intents. Enable privileged intents in the Discord Developer Portal where required.
+
+## Quick start
+
+Copy the example environment file and set the Discord token and MongoDB credentials:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+For local development, start MongoDB through Docker Compose or use another MongoDB instance, then run:
+
+```powershell
+$env:DISCORD_BOT_TOKEN = "your-discord-bot-token"
+$env:SPRING_MONGODB_URI = "mongodb://zenith:change-this-password@localhost:27017/zenith?authSource=admin"
+$env:SPRING_PROFILES_ACTIVE = "dev"
+.\gradlew.bat bootRun
+```
+
+The bot connects to Discord and synchronizes global slash commands during startup. Global command changes can take time to propagate through Discord.
 
 ## Commands
 
@@ -24,7 +115,7 @@ Zenith is a Spring Boot Discord bot for community utilities, Overwatch informati
 | `/hero_stats` | Browse statistics for a specific hero. |
 | `/link` | Link an Overwatch account to a Discord account. |
 | `/map` | Browse maps for an Overwatch game mode. |
-| `/member_of_the_week` | Manage Member of the Week voting rounds. |
+| `/member_of_the_week` | Open, close, rotate, pause, or inspect voting rounds. |
 | `/ping` | Check the bot's latency. |
 | `/player_summary` | View an Overwatch player's summary and competitive ranks. |
 | `/purge_messages` | Delete messages from a member. |
@@ -33,52 +124,33 @@ Zenith is a Spring Boot Discord bot for community utilities, Overwatch informati
 | `/top_heroes` | View a player's most-played Overwatch heroes. |
 | `/uwulock` | Manage user uwu blocks. |
 
-## Requirements
-
-- Java 21
-- Docker and Docker Compose (recommended for MongoDB), or a MongoDB instance
-- A Discord application and bot token
-- A Discord bot installation with the permissions required by the enabled commands
-
-The bot uses the `GUILDS`, `GUILD_MEMBERS`, `GUILD_MESSAGES`, `MESSAGE_CONTENT`, and `GUILD_MODERATION` gateway intents. Enable the privileged intents in the Discord Developer Portal when required.
-
 ## Configuration
 
-The application reads configuration from environment variables. Use [.env.example](.env.example) as a starting point, copy it to `.env`, and replace the placeholder values. Do not commit `.env` files, bot tokens, passwords, or Sentry DSNs.
+The application reads secrets and connection details from environment variables:
 
 | Variable | Required | Description |
 | --- | --- | --- |
 | `DISCORD_BOT_TOKEN` | Yes | Discord bot token. |
 | `SPRING_MONGODB_URI` | Yes | MongoDB connection URI. |
-| `SENTRY_DSN` | No | Sentry DSN; leave empty to disable event reporting. |
-| `SENTRY_SEND_DEFAULT_PII` | No | Whether Sentry may send default PII; defaults to `false`. |
-| `SENTRY_LOGS_ENABLED` | No | Whether Sentry log collection is enabled; defaults to `true` in the base profile. |
 | `SPRING_PROFILES_ACTIVE` | No | Use `dev` for development logging or `prod` for production settings. |
+| `SENTRY_DSN` | No | Sentry DSN; empty disables event reporting. |
+| `SENTRY_SEND_DEFAULT_PII` | No | Whether Sentry may send default PII; defaults to `false`. |
+| `SENTRY_LOGS_ENABLED` | No | Whether Sentry log collection is enabled. |
 
-Member of the Week is configured in `src/main/resources/application.yaml`. Its guild, voting, channel, role, timezone, cron expression, and voting duration can be changed there or overridden with Spring configuration properties.
+Member of the Week settings are under `zenith.member-of-the-week` in `src/main/resources/application.yaml` and can be overridden with Spring configuration properties.
 
-## Running locally
+| Property | Default | Description |
+| --- | --- | --- |
+| `guild-id` | configured in `application.yaml` | Guild used by the scheduled voting workflow. |
+| `timezone` | `Europe/Warsaw` | Time zone used for scheduling and display. |
+| `cron` | `0 0 18 ? * MON` | Opens a round on Mondays at 18:00. |
+| `voting-duration` | `24h` | Duration of an automatic voting round. |
 
-Start MongoDB and export the required variables in your shell or IDE. For PowerShell:
-
-```powershell
-$env:DISCORD_BOT_TOKEN = "your-discord-bot-token"
-$env:SPRING_MONGODB_URI = "mongodb://user:password@localhost:27017/zenith?authSource=admin"
-$env:SPRING_PROFILES_ACTIVE = "dev"
-.\gradlew.bat bootRun
-```
-
-Run the test suite with:
-
-```powershell
-.\gradlew.bat test
-```
-
-Global slash commands are synchronized when the application starts. Discord may take time to propagate global command changes.
+Do not commit `.env` files, bot tokens, database passwords, or Sentry DSNs.
 
 ## Docker Compose
 
-Copy `.env.example` to `.env` and set values for `MONGO_DATABASE`, `MONGO_USER`, `MONGO_PASSWORD`, `DISCORD_BOT_TOKEN`, and any desired Sentry variables. Build the application JAR first, because the Dockerfile copies the JAR from `build/libs`:
+Build the application JAR, then start MongoDB and the bot:
 
 ```powershell
 Copy-Item .env.example .env
@@ -98,29 +170,47 @@ Stop the services with:
 docker compose down
 ```
 
-The MongoDB data is stored in the named `mongo-data` volume. Remove that volume only when you intentionally want to discard the database.
+MongoDB data is stored in the named `mongo-data` volume. Removing that volume permanently discards the local database.
+
+## Testing
+
+Run the test suite with:
+
+```powershell
+.\gradlew.bat test
+```
+
+The current test suite verifies that the Spring application context loads. MongoDB must be available through `SPRING_MONGODB_URI` when the context test is run.
 
 ## Project structure
 
 ```text
-src/main/java/dev/asyncluna/zenith/
-├── core/              Shared integrations, models, repositories, services, and utilities
-├── discord/            Discord client, command framework, listeners, and features
-├── memberoftheweek/   Voting domain, persistence, notifications, and Quartz jobs
+src/main/java/dev/asyncluna/zenith
+├── core
+│   ├── integration       # OverFast and Animality API clients and caches
+│   ├── i18n              # English and Polish localization
+│   ├── model             # Shared MongoDB documents
+│   ├── repository        # Reactive MongoDB repositories
+│   └── service           # Shared application services
+├── discord
+│   ├── client             # Discord4J client and gateway intents
+│   ├── command            # Command annotations, registry, dispatch, and errors
+│   ├── feature            # Discord commands and component listeners
+│   └── listener            # Gateway and guild event listeners
+├── memberoftheweek        # Voting domain, notifications, and Quartz jobs
 └── ZenithDiscordBotApplication.java
+
+src/main/resources
+├── application.yaml       # Base configuration
+├── application-dev.yaml   # Development profile
+├── application-prod.yaml  # Production profile
+├── messages.properties    # English translations
+└── messages_pl.properties # Polish translations
 ```
-
-## Development notes
-
-- The project is built with Gradle and uses the Gradle wrapper.
-- Reactive Spring components are used for MongoDB and HTTP integrations.
-- `messages.properties` contains English translations; `messages_pl.properties` contains Polish translations.
-- The default Member of the Week schedule is Mondays at 18:00 in `Europe/Warsaw`, with a 24-hour voting period.
-- Sentry development settings are intentionally more verbose than production settings.
 
 ## Contributing
 
-Changes should include appropriate tests where practical. Before opening a pull request, run `./gradlew test` (or `gradlew.bat test` on Windows) and ensure that secrets and local configuration remain untracked.
+Run `./gradlew test` (or `gradlew.bat test` on Windows) before opening a pull request. Keep secrets and local configuration untracked, and add tests for behavior changes where practical.
 
 ## License
 
