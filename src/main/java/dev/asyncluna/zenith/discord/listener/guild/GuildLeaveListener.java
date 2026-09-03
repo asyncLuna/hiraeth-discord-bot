@@ -12,13 +12,13 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @Slf4j
 public class GuildLeaveListener implements EventListener<GuildDeleteEvent> {
-  private final GuildSettingsRepository guildSettingsRepository;
+    private final GuildSettingsRepository guildSettingsRepository;
 
-  @Override
-  public Mono<Void> execute(GuildDeleteEvent event) {
-    return guildSettingsRepository
-        .deleteById(event.getGuildId().asString())
-        .doOnSuccess(
-            unused -> log.info("Deleted settings for guild: '{}'", event.getGuildId().asString()));
-  }
+    @Override
+    public Mono<Void> execute(GuildDeleteEvent event) {
+        return guildSettingsRepository
+                .deleteById(event.getGuildId().asString())
+                .doOnSuccess(unused -> log.info(
+                        "Deleted settings for guild: '{}'", event.getGuildId().asString()));
+    }
 }

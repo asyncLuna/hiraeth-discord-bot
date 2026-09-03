@@ -13,21 +13,20 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @Slf4j
 public class GuildJoinListener implements EventListener<GuildCreateEvent> {
-  private final GuildSettingsRepository guildSettingsRepository;
+    private final GuildSettingsRepository guildSettingsRepository;
 
-  @Override
-  public Mono<Void> execute(GuildCreateEvent event) {
-    return guildSettingsRepository
-        .findById(event.getGuild().getId().asString())
-        .switchIfEmpty(
-            Mono.defer(
-                () -> {
-                  log.info(
-                      "Creating default settings for guild: '{}'",
-                      event.getGuild().getId().asString());
-                  return guildSettingsRepository.save(
-                      GuildSettings.builder().id(event.getGuild().getId().asString()).build());
+    @Override
+    public Mono<Void> execute(GuildCreateEvent event) {
+        return guildSettingsRepository
+                .findById(event.getGuild().getId().asString())
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.info(
+                            "Creating default settings for guild: '{}'",
+                            event.getGuild().getId().asString());
+                    return guildSettingsRepository.save(GuildSettings.builder()
+                            .id(event.getGuild().getId().asString())
+                            .build());
                 }))
-        .then();
-  }
+                .then();
+    }
 }

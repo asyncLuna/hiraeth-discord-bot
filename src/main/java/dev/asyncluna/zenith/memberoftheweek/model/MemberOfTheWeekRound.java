@@ -14,14 +14,15 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document("member_of_the_week_rounds")
 @CompoundIndex(name = "one_open_round_per_guild_lookup", def = "{'guildId': 1, 'status': 1}")
 public class MemberOfTheWeekRound {
-  @Id private String id;
+    @Id
+    private String id;
 
-  private String guildId;
-  private String channelId;
-  private String messageId;
+    private String guildId;
+    private String channelId;
+    private String messageId;
 
-  private Instant startsAt;
-  private Instant endsAt;
+    private Instant startsAt;
+    private Instant endsAt;
 
-  private MemberOfTheWeekRoundStatus status;
+    private MemberOfTheWeekRoundStatus status;
 }

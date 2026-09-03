@@ -11,18 +11,17 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @Slf4j
 public class DiscordListenerOrchestrator {
-  @Bean
-  public <T extends Event> ApplicationRunner discordBotRunner(
-      GatewayDiscordClient gateway, List<EventListener<T>> eventListeners) {
-    return args -> {
-      log.info("Registering {} event listener(s)", eventListeners.size());
+    @Bean
+    public <T extends Event> ApplicationRunner discordBotRunner(
+            GatewayDiscordClient gateway, List<EventListener<T>> eventListeners) {
+        return args -> {
+            log.info("Registering {} event listener(s)", eventListeners.size());
 
-      for (EventListener<T> listener : eventListeners) {
-        gateway
-            .on(listener.getEventType())
-            .flatMap(event -> listener.execute(event).onErrorResume(listener::handleException))
-            .subscribe();
-      }
-    };
-  }
+            for (EventListener<T> listener : eventListeners) {
+                gateway.on(listener.getEventType())
+                        .flatMap(event -> listener.execute(event).onErrorResume(listener::handleException))
+                        .subscribe();
+            }
+        };
+    }
 }

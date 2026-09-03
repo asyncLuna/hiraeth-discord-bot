@@ -10,13 +10,13 @@ import org.springframework.stereotype.Component;
 @Retention(RetentionPolicy.RUNTIME)
 @Component
 public @interface Command {
-  String name();
+    String name();
 
-  String description();
+    String description();
 
-  boolean ephemeral() default false;
+    boolean ephemeral() default false;
 
-  String defaultMemberPermissions() default "";
+    String defaultMemberPermissions() default "";
 
-  boolean dmPermission() default false;
+    boolean dmPermission() default false;
 }

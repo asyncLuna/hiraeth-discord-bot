@@ -3,5 +3,5 @@ package dev.asyncluna.zenith.core.i18n;
 import java.util.Locale;
 
 public interface Translatable {
-  String localize(String key, Locale locale, Object... args);
+    String localize(String key, Locale locale, Object... args);
 }

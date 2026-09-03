@@ -10,10 +10,10 @@ import reactor.core.publisher.Mono;
 @Component
 @RequiredArgsConstructor
 public class CommandAutocompleteListener implements EventListener<ChatInputAutoCompleteEvent> {
-  private final CommandDispatcher dispatcher;
+    private final CommandDispatcher dispatcher;
 
-  @Override
-  public Mono<Void> execute(ChatInputAutoCompleteEvent event) {
-    return dispatcher.dispatchAutocomplete(event);
-  }
+    @Override
+    public Mono<Void> execute(ChatInputAutoCompleteEvent event) {
+        return dispatcher.dispatchAutocomplete(event);
+    }
 }

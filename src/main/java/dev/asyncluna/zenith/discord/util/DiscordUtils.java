@@ -12,21 +12,19 @@ import reactor.core.publisher.Mono;
 
 @NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public final class DiscordUtils {
-  public static Mono<Boolean> hasPermission(
-      Channel channel, Snowflake userId, Permission permission) {
-    if (channel instanceof PrivateChannel) return Mono.just(true);
-    return ((GuildChannel) channel)
-        .getEffectivePermissions(userId)
-        .map(permissions -> permissions.contains(permission));
-  }
+    public static Mono<Boolean> hasPermission(Channel channel, Snowflake userId, Permission permission) {
+        if (channel instanceof PrivateChannel) return Mono.just(true);
+        return ((GuildChannel) channel)
+                .getEffectivePermissions(userId)
+                .map(permissions -> permissions.contains(permission));
+    }
 
-  public static Mono<Void> requirePermissions(Channel channel, Permission... permissions) {
-    return Flux.fromArray(permissions)
-        .flatMap(
-            permission ->
-                hasPermission(channel, channel.getClient().getSelfId(), permission)
-                    .filter(Boolean.TRUE::equals)
-                    .switchIfEmpty(Mono.error(new MissingPermissionException(permission))))
-        .then();
-  }
+    public static Mono<Void> requirePermissions(Channel channel, Permission... permissions) {
+        return Flux.fromArray(permissions)
+                .flatMap(
+                        permission -> hasPermission(channel, channel.getClient().getSelfId(), permission)
+                                .filter(Boolean.TRUE::equals)
+                                .switchIfEmpty(Mono.error(new MissingPermissionException(permission))))
+                .then();
+    }
 }

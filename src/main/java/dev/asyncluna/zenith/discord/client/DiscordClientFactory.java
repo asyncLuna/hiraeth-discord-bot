@@ -13,24 +13,22 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableConfigurationProperties(DiscordBotProperties.class)
 public class DiscordClientFactory {
-  @Bean
-  public GatewayDiscordClient gatewayDiscordClient(DiscordBotProperties properties) {
-    if (properties.getToken() == null || properties.getToken().isBlank()) {
-      throw new IllegalStateException("DISCORD_BOT_TOKEN environment variable not set or empty");
-    }
+    @Bean
+    public GatewayDiscordClient gatewayDiscordClient(DiscordBotProperties properties) {
+        if (properties.getToken() == null || properties.getToken().isBlank()) {
+            throw new IllegalStateException("DISCORD_BOT_TOKEN environment variable not set or empty");
+        }
 
-    return DiscordClient.create(properties.getToken())
-        .gateway()
-        .setEnabledIntents(
-            IntentSet.of(
-                Intent.GUILDS,
-                Intent.GUILD_MEMBERS,
-                Intent.GUILD_MESSAGES,
-                Intent.MESSAGE_CONTENT,
-                Intent.GUILD_MODERATION))
-        .setInitialPresence(
-            shardInfo -> ClientPresence.online(ClientActivity.custom("Pocketing you")))
-        .login()
-        .block();
-  }
+        return DiscordClient.create(properties.getToken())
+                .gateway()
+                .setEnabledIntents(IntentSet.of(
+                        Intent.GUILDS,
+                        Intent.GUILD_MEMBERS,
+                        Intent.GUILD_MESSAGES,
+                        Intent.MESSAGE_CONTENT,
+                        Intent.GUILD_MODERATION))
+                .setInitialPresence(shardInfo -> ClientPresence.online(ClientActivity.custom("Pocketing you")))
+                .login()
+                .block();
+    }
 }

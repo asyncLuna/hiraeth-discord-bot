@@ -15,33 +15,35 @@ import reactor.core.publisher.Mono;
 @Component
 @RequiredArgsConstructor
 @Command(
-    name = "confessions",
-    description = "Enable or disable confession submissions.",
-    defaultMemberPermissions = "16",
-    ephemeral = true)
+        name = "confessions",
+        description = "Enable or disable confession submissions.",
+        defaultMemberPermissions = "16",
+        ephemeral = true)
 @CommandOption(
-    name = "enabled",
-    description = "Whether members can submit confessions.",
-    type = ApplicationCommandOption.Type.BOOLEAN,
-    required = true)
+        name = "enabled",
+        description = "Whether members can submit confessions.",
+        type = ApplicationCommandOption.Type.BOOLEAN,
+        required = true)
 public class ConfessionsCommand implements BotCommand {
-  private final GuildSettingsRepository guildSettingsRepository;
+    private final GuildSettingsRepository guildSettingsRepository;
 
-  @Override
-  public Mono<?> handle(CommandContext ctx) {
-    String guildId =
-        ctx.getEvent().getInteraction().getGuildId().map(Snowflake::asString).orElse("");
-    boolean enabled = ctx.getOptionAsBoolean("enabled").orElse(true);
+    @Override
+    public Mono<?> handle(CommandContext ctx) {
+        String guildId = ctx.getEvent()
+                .getInteraction()
+                .getGuildId()
+                .map(Snowflake::asString)
+                .orElse("");
+        boolean enabled = ctx.getOptionAsBoolean("enabled").orElse(true);
 
-    return guildSettingsRepository
-        .findById(guildId)
-        .defaultIfEmpty(GuildSettings.builder().id(guildId).build())
-        .flatMap(
-            settings -> {
-              settings.setConfessionsEnabled(enabled);
-              return guildSettingsRepository.save(settings);
-            })
-        .then(ctx.editReply(ctx.localize(enabled ? "confessions.enabled" : "confessions.disabled")))
-        .onErrorResume(__ -> ctx.editReply(ctx.localize("confessions.update_failed")));
-  }
+        return guildSettingsRepository
+                .findById(guildId)
+                .defaultIfEmpty(GuildSettings.builder().id(guildId).build())
+                .flatMap(settings -> {
+                    settings.setConfessionsEnabled(enabled);
+                    return guildSettingsRepository.save(settings);
+                })
+                .then(ctx.editReply(ctx.localize(enabled ? "confessions.enabled" : "confessions.disabled")))
+                .onErrorResume(__ -> ctx.editReply(ctx.localize("confessions.update_failed")));
+    }
 }

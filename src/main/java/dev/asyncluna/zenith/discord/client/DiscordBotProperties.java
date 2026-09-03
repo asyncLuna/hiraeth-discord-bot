@@ -8,5 +8,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 @ConfigurationProperties(prefix = "discord.bot")
 public class DiscordBotProperties {
-  private String token;
+    private String token;
 }

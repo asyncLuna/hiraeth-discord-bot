@@ -31,111 +31,95 @@ import reactor.core.publisher.Mono;
 @Component
 @RequiredArgsConstructor
 @Command(
-    name = "send_button",
-    description = "Send a predefined button from a list.",
-    defaultMemberPermissions = "16", // MANAGE_CHANNELS
-    ephemeral = true)
+        name = "send_button",
+        description = "Send a predefined button from a list.",
+        defaultMemberPermissions = "16", // MANAGE_CHANNELS
+        ephemeral = true)
 @CommandOption(
-    name = "type",
-    description = "The button to send.",
-    type = ApplicationCommandOption.Type.STRING,
-    autocomplete = true,
-    required = true)
+        name = "type",
+        description = "The button to send.",
+        type = ApplicationCommandOption.Type.STRING,
+        autocomplete = true,
+        required = true)
 @CommandOption(
-    name = "channel",
-    description = "The channel to send the button to. Defaults to current.",
-    type = ApplicationCommandOption.Type.CHANNEL)
+        name = "channel",
+        description = "The channel to send the button to. Defaults to current.",
+        type = ApplicationCommandOption.Type.CHANNEL)
 public class SendButtonCommand implements BotCommand {
-  private static final String SUBMIT_A_CONFESSION_BUTTON_ID = "submit_a_confession_button";
+    private static final String SUBMIT_A_CONFESSION_BUTTON_ID = "submit_a_confession_button";
 
-  private static final Map<String, String> AVAILABLE_BUTTONS =
-      Map.of(SUBMIT_A_CONFESSION_BUTTON_ID, "Confession");
+    private static final Map<String, String> AVAILABLE_BUTTONS = Map.of(SUBMIT_A_CONFESSION_BUTTON_ID, "Confession");
 
-  @Override
-  public Mono<?> handle(CommandContext ctx) {
-    Optional<String> buttonIdOption = ctx.getOptionAsString("type");
+    @Override
+    public Mono<?> handle(CommandContext ctx) {
+        Optional<String> buttonIdOption = ctx.getOptionAsString("type");
 
-    if (buttonIdOption.isEmpty() || !AVAILABLE_BUTTONS.containsKey(buttonIdOption.get()))
-      return Mono.error(new CommandException(ctx.localize("send_button.error.invalid_id")));
+        if (buttonIdOption.isEmpty() || !AVAILABLE_BUTTONS.containsKey(buttonIdOption.get()))
+            return Mono.error(new CommandException(ctx.localize("send_button.error.invalid_id")));
 
-    String buttonId = buttonIdOption.get();
+        String buttonId = buttonIdOption.get();
 
-    Mono<TextChannel> targetChannelMono =
-        Mono.justOrEmpty(ctx.getOptionAsChannel("channel"))
-            .cast(Channel.class)
-            .switchIfEmpty(ctx.getEvent().getInteraction().getChannel().cast(Channel.class))
-            .flatMap(
-                channel -> {
-                  if (channel.getType() != Channel.Type.GUILD_TEXT)
-                    return Mono.error(
-                        new CommandException(ctx.localize("send_button.error.text_channel_only")));
+        Mono<TextChannel> targetChannelMono = Mono.justOrEmpty(ctx.getOptionAsChannel("channel"))
+                .cast(Channel.class)
+                .switchIfEmpty(ctx.getEvent().getInteraction().getChannel().cast(Channel.class))
+                .flatMap(channel -> {
+                    if (channel.getType() != Channel.Type.GUILD_TEXT)
+                        return Mono.error(new CommandException(ctx.localize("send_button.error.text_channel_only")));
 
-                  return Mono.just((TextChannel) channel);
+                    return Mono.just((TextChannel) channel);
                 });
 
-    return targetChannelMono
-        .flatMap(
-            textChannel -> {
-              MessageCreateSpec messageSpec;
+        return targetChannelMono
+                .flatMap(textChannel -> {
+                    MessageCreateSpec messageSpec;
 
-              if (buttonId.equals(SUBMIT_A_CONFESSION_BUTTON_ID)) {
-                EmbedCreateSpec embed =
-                    EmbedCreateSpec.builder()
-                        .title(ctx.localize("send_button.confession.embed.title"))
-                        .description(ctx.localize("send_button.confession.embed.description"))
-                        .color(Color.CYAN)
-                        .build();
+                    if (buttonId.equals(SUBMIT_A_CONFESSION_BUTTON_ID)) {
+                        EmbedCreateSpec embed = EmbedCreateSpec.builder()
+                                .title(ctx.localize("send_button.confession.embed.title"))
+                                .description(ctx.localize("send_button.confession.embed.description"))
+                                .color(Color.CYAN)
+                                .build();
 
-                Button button =
-                    Button.primary(
-                        SUBMIT_A_CONFESSION_BUTTON_ID,
-                        Emoji.unicode("\uD83E\uDD2B"),
-                        ctx.localize("send_button.confession.button.label"));
+                        Button button = Button.primary(
+                                SUBMIT_A_CONFESSION_BUTTON_ID,
+                                Emoji.unicode("\uD83E\uDD2B"),
+                                ctx.localize("send_button.confession.button.label"));
 
-                messageSpec =
-                    MessageCreateSpec.builder()
-                        .addEmbed(embed)
-                        .addComponent(ActionRow.of(button))
-                        .build();
-              } else {
-                return Mono.error(
-                    new CommandException(ctx.localize("send_button.error.unimplemented")));
-              }
+                        messageSpec = MessageCreateSpec.builder()
+                                .addEmbed(embed)
+                                .addComponent(ActionRow.of(button))
+                                .build();
+                    } else {
+                        return Mono.error(new CommandException(ctx.localize("send_button.error.unimplemented")));
+                    }
 
-              return textChannel.createMessage(messageSpec);
-            })
-        .then(ctx.editReply(ctx.localize("send_button.success")));
-  }
+                    return textChannel.createMessage(messageSpec);
+                })
+                .then(ctx.editReply(ctx.localize("send_button.success")));
+    }
 
-  @Override
-  public Mono<Void> autocomplete(ChatInputAutoCompleteEvent event) {
-    ApplicationCommandInteractionOption focusedOption = event.getFocusedOption();
-    String optionName = focusedOption.getName();
-    String userInput =
-        focusedOption
-            .getValue()
-            .map(ApplicationCommandInteractionOptionValue::asString)
-            .map(String::toLowerCase)
-            .orElse("");
+    @Override
+    public Mono<Void> autocomplete(ChatInputAutoCompleteEvent event) {
+        ApplicationCommandInteractionOption focusedOption = event.getFocusedOption();
+        String optionName = focusedOption.getName();
+        String userInput = focusedOption
+                .getValue()
+                .map(ApplicationCommandInteractionOptionValue::asString)
+                .map(String::toLowerCase)
+                .orElse("");
 
-    Mono<List<ApplicationCommandOptionChoiceData>> choicesMono =
-        optionName.equals("type")
-            ? Flux.fromIterable(AVAILABLE_BUTTONS.entrySet())
-                .filter(
-                    entry ->
-                        entry.getKey().toLowerCase().contains(userInput)
-                            || entry.getValue().toLowerCase().contains(userInput))
-                .take(DiscordConstants.MAX_AUTO_COMPLETE_RESULTS)
-                .map(
-                    entry ->
-                        (ApplicationCommandOptionChoiceData)
-                            ApplicationCommandOptionChoiceData.builder()
+        Mono<List<ApplicationCommandOptionChoiceData>> choicesMono = optionName.equals("type")
+                ? Flux.fromIterable(AVAILABLE_BUTTONS.entrySet())
+                        .filter(entry -> entry.getKey().toLowerCase().contains(userInput)
+                                || entry.getValue().toLowerCase().contains(userInput))
+                        .take(DiscordConstants.MAX_AUTO_COMPLETE_RESULTS)
+                        .map(entry -> (ApplicationCommandOptionChoiceData) ApplicationCommandOptionChoiceData.builder()
                                 .name(entry.getValue())
                                 .value(entry.getKey())
                                 .build())
-                .collectList()
-            : Mono.just(Collections.emptyList());
+                        .collectList()
+                : Mono.just(Collections.emptyList());
 
-    return choicesMono.flatMap(event::respondWithSuggestions).then();
-  }
+        return choicesMono.flatMap(event::respondWithSuggestions).then();
+    }
 }

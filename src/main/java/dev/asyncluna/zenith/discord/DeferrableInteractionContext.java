@@ -21,91 +21,88 @@ import discord4j.rest.interaction.InteractionResponse;
 import java.util.Collection;
 import reactor.core.publisher.Mono;
 
-public abstract class DeferrableInteractionContext<E extends DeferrableInteractionEvent>
-    extends InteractionContext<E> {
-  protected DeferrableInteractionContext(
-      E event, GuildSettings guildSettings, I18nManager i18nManager) {
-    super(event, guildSettings, i18nManager);
-  }
+public abstract class DeferrableInteractionContext<E extends DeferrableInteractionEvent> extends InteractionContext<E> {
+    protected DeferrableInteractionContext(E event, GuildSettings guildSettings, I18nManager i18nManager) {
+        super(event, guildSettings, i18nManager);
+    }
 
-  public InteractionCallbackSpecDeferReplyMono deferReply() {
-    return getEvent().deferReply();
-  }
+    public InteractionCallbackSpecDeferReplyMono deferReply() {
+        return getEvent().deferReply();
+    }
 
-  public Mono<Void> deferReply(InteractionCallbackSpec spec) {
-    return getEvent().deferReply(spec);
-  }
+    public Mono<Void> deferReply(InteractionCallbackSpec spec) {
+        return getEvent().deferReply(spec);
+    }
 
-  public InteractionApplicationCommandCallbackReplyMono reply() {
-    return getEvent().reply();
-  }
+    public InteractionApplicationCommandCallbackReplyMono reply() {
+        return getEvent().reply();
+    }
 
-  public InteractionApplicationCommandCallbackReplyMono reply(String content) {
-    return getEvent().reply(content);
-  }
+    public InteractionApplicationCommandCallbackReplyMono reply(String content) {
+        return getEvent().reply(content);
+    }
 
-  public Mono<Void> reply(InteractionApplicationCommandCallbackSpec spec) {
-    return getEvent().reply(spec);
-  }
+    public Mono<Void> reply(InteractionApplicationCommandCallbackSpec spec) {
+        return getEvent().reply(spec);
+    }
 
-  public InteractionPresentModalMono presentModal() {
-    return getEvent().presentModal();
-  }
+    public InteractionPresentModalMono presentModal() {
+        return getEvent().presentModal();
+    }
 
-  public Mono<Void> presentModal(
-      String title, String customId, Collection<LayoutComponent> components) {
-    return getEvent().presentModal(title, customId, components);
-  }
+    public Mono<Void> presentModal(String title, String customId, Collection<LayoutComponent> components) {
+        return getEvent().presentModal(title, customId, components);
+    }
 
-  public Mono<Void> presentModal(InteractionPresentModalSpec spec) {
-    return getEvent().presentModal(spec);
-  }
+    public Mono<Void> presentModal(InteractionPresentModalSpec spec) {
+        return getEvent().presentModal(spec);
+    }
 
-  public InteractionReplyEditMono editReply() {
-    return getEvent().editReply();
-  }
+    public InteractionReplyEditMono editReply() {
+        return getEvent().editReply();
+    }
 
-  public InteractionReplyEditMono editReply(String content) {
-    return getEvent().editReply(content);
-  }
+    public InteractionReplyEditMono editReply(String content) {
+        return getEvent().editReply(content);
+    }
 
-  public Mono<Message> editReply(InteractionReplyEditSpec spec) {
-    return getEvent().editReply(spec);
-  }
+    public Mono<Message> editReply(InteractionReplyEditSpec spec) {
+        return getEvent().editReply(spec);
+    }
 
-  public Mono<Message> getReply() {
-    return getEvent().getReply();
-  }
+    public Mono<Message> getReply() {
+        return getEvent().getReply();
+    }
 
-  public Mono<Void> deleteReply() {
-    return getEvent().deleteReply();
-  }
+    public Mono<Void> deleteReply() {
+        return getEvent().deleteReply();
+    }
 
-  public InteractionFollowupCreateMono createFollowup() {
-    return getEvent().createFollowup();
-  }
+    public InteractionFollowupCreateMono createFollowup() {
+        return getEvent().createFollowup();
+    }
 
-  public InteractionFollowupCreateMono createFollowup(String content) {
-    return getEvent().createFollowup(content);
-  }
+    public InteractionFollowupCreateMono createFollowup(String content) {
+        return getEvent().createFollowup(content);
+    }
 
-  public Mono<Message> createFollowup(InteractionFollowupCreateSpec spec) {
-    return getEvent().createFollowup(spec);
-  }
+    public Mono<Message> createFollowup(InteractionFollowupCreateSpec spec) {
+        return getEvent().createFollowup(spec);
+    }
 
-  public InteractionFollowupEditMono editFollowup(Snowflake messageId) {
-    return getEvent().editFollowup(messageId);
-  }
+    public InteractionFollowupEditMono editFollowup(Snowflake messageId) {
+        return getEvent().editFollowup(messageId);
+    }
 
-  public Mono<Message> editFollowup(Snowflake messageId, InteractionReplyEditSpec spec) {
-    return getEvent().editFollowup(messageId, spec);
-  }
+    public Mono<Message> editFollowup(Snowflake messageId, InteractionReplyEditSpec spec) {
+        return getEvent().editFollowup(messageId, spec);
+    }
 
-  public Mono<Void> deleteFollowup(Snowflake messageId) {
-    return getEvent().deleteFollowup(messageId);
-  }
+    public Mono<Void> deleteFollowup(Snowflake messageId) {
+        return getEvent().deleteFollowup(messageId);
+    }
 
-  public InteractionResponse getInteractionResponse() {
-    return getEvent().getInteractionResponse();
-  }
+    public InteractionResponse getInteractionResponse() {
+        return getEvent().getInteractionResponse();
+    }
 }

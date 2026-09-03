@@ -13,7 +13,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @AllArgsConstructor
 @Builder
 public class AccountLink {
-  @Id private String discordId;
-  @Builder.Default private long createdAt = System.currentTimeMillis();
-  private String battleTag;
+    @Id
+    private String discordId;
+
+    @Builder.Default
+    private long createdAt = System.currentTimeMillis();
+
+    private String battleTag;
 }

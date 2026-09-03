@@ -10,18 +10,15 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class TopHeroesComponentFactory {
-  private final I18nManager i18nManager;
-  private final TopHeroesRenderer renderer;
+    private final I18nManager i18nManager;
+    private final TopHeroesRenderer renderer;
 
-  public ActionRow createPageButtons(String sessionId, TopHeroesSession session, Locale locale) {
-    int totalPages = renderer.totalPages(session);
-    Button previous =
-        Button.secondary(
-                "th-prev:" + sessionId, i18nManager.localize("top_heroes.previous", locale))
-            .disabled(session.page() == 0);
-    Button next =
-        Button.secondary("th-next:" + sessionId, i18nManager.localize("top_heroes.next", locale))
-            .disabled(session.page() >= totalPages - 1);
-    return ActionRow.of(previous, next);
-  }
+    public ActionRow createPageButtons(String sessionId, TopHeroesSession session, Locale locale) {
+        int totalPages = renderer.totalPages(session);
+        Button previous = Button.secondary("th-prev:" + sessionId, i18nManager.localize("top_heroes.previous", locale))
+                .disabled(session.page() == 0);
+        Button next = Button.secondary("th-next:" + sessionId, i18nManager.localize("top_heroes.next", locale))
+                .disabled(session.page() >= totalPages - 1);
+        return ActionRow.of(previous, next);
+    }
 }

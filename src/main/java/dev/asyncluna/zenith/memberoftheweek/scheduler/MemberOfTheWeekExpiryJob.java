@@ -13,22 +13,20 @@ import org.quartz.JobExecutionException;
 @Slf4j
 @DisallowConcurrentExecution
 public class MemberOfTheWeekExpiryJob implements Job {
-  private final MemberOfTheWeekRoundService roundService;
+    private final MemberOfTheWeekRoundService roundService;
 
-  @Override
-  public void execute(JobExecutionContext context) throws JobExecutionException {
-    log.debug("Member of the Week expiry check started");
+    @Override
+    public void execute(JobExecutionContext context) throws JobExecutionException {
+        log.debug("Member of the Week expiry check started");
 
-    try {
-      roundService
-          .closeExpiredRound()
-          .doOnNext(
-              round ->
-                  log.info("Expired Member of the Week round closed | roundId={}", round.getId()))
-          .block(Duration.ofMinutes(2));
-    } catch (Exception exception) {
-      log.error("Member of the Week expiry check failed", exception);
-      throw new JobExecutionException(exception, true);
+        try {
+            roundService
+                    .closeExpiredRound()
+                    .doOnNext(round -> log.info("Expired Member of the Week round closed | roundId={}", round.getId()))
+                    .block(Duration.ofMinutes(2));
+        } catch (Exception exception) {
+            log.error("Member of the Week expiry check failed", exception);
+            throw new JobExecutionException(exception, true);
+        }
     }
-  }
 }

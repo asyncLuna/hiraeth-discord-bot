@@ -9,8 +9,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableConfigurationProperties(MemberOfTheWeekProperties.class)
 public class MemberOfTheWeekConfiguration {
-  @Bean
-  public Clock memberOfTheWeekClock(MemberOfTheWeekProperties properties) {
-    return Clock.system(ZoneId.of(properties.timezone()));
-  }
+    @Bean
+    public Clock memberOfTheWeekClock(MemberOfTheWeekProperties properties) {
+        return Clock.system(ZoneId.of(properties.timezone()));
+    }
 }

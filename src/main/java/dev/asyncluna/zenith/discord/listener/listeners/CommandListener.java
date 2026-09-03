@@ -10,10 +10,10 @@ import reactor.core.publisher.Mono;
 @Component
 @RequiredArgsConstructor
 public class CommandListener implements EventListener<ChatInputInteractionEvent> {
-  private final CommandDispatcher dispatcher;
+    private final CommandDispatcher dispatcher;
 
-  @Override
-  public Mono<Void> execute(ChatInputInteractionEvent event) {
-    return dispatcher.dispatch(event);
-  }
+    @Override
+    public Mono<Void> execute(ChatInputInteractionEvent event) {
+        return dispatcher.dispatch(event);
+    }
 }

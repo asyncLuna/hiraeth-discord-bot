@@ -5,7 +5,7 @@ import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CommandChoice {
-  String name();
+    String name();
 
-  String value();
+    String value();
 }

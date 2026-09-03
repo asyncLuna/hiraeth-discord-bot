@@ -14,14 +14,24 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @AllArgsConstructor
 @Builder
 public class GuildSettings {
-  @Id private String id;
-  @Builder.Default private String locale = SupportedLocale.ENGLISH.getLocale().toLanguageTag();
-  @Builder.Default private long createdAt = System.currentTimeMillis();
-  @Builder.Default private boolean confessionsEnabled = true;
-  @Builder.Default private boolean memberOfTheWeekPaused = false;
-  private String confessionsChannelId;
-  private String confessionsLogChannelId;
-  private String memberOfTheWeekChannelId;
-  private String memberOfTheWeekLogChannelId;
-  private String moderationLogChannelId;
+    @Id
+    private String id;
+
+    @Builder.Default
+    private String locale = SupportedLocale.ENGLISH.getLocale().toLanguageTag();
+
+    @Builder.Default
+    private long createdAt = System.currentTimeMillis();
+
+    @Builder.Default
+    private boolean confessionsEnabled = true;
+
+    @Builder.Default
+    private boolean memberOfTheWeekPaused = false;
+
+    private String confessionsChannelId;
+    private String confessionsLogChannelId;
+    private String memberOfTheWeekChannelId;
+    private String memberOfTheWeekLogChannelId;
+    private String moderationLogChannelId;
 }

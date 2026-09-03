@@ -10,16 +10,15 @@ import reactor.core.publisher.Hooks;
 @Component
 @Slf4j
 public class GlobalExceptionListener {
-  @PostConstruct
-  public void init() {
-    Hooks.onErrorDropped(Sentry::captureException);
+    @PostConstruct
+    public void init() {
+        Hooks.onErrorDropped(Sentry::captureException);
 
-    Thread.setDefaultUncaughtExceptionHandler(
-        (thread, throwable) -> Sentry.captureException(throwable));
-  }
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> Sentry.captureException(throwable));
+    }
 
-  @PreDestroy
-  public void cleanup() {
-    Hooks.resetOnErrorDropped();
-  }
+    @PreDestroy
+    public void cleanup() {
+        Hooks.resetOnErrorDropped();
+    }
 }

@@ -19,61 +19,53 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @Slf4j
 public class MemberOfTheWeekVoteService {
-  private final MemberOfTheWeekRoundRepository roundRepository;
-  private final MemberOfTheWeekVoteRepository voteRepository;
-  private final Clock memberOfTheWeekClock;
-  private final MemberOfTheWeekDiscordNotifier discordNotifier;
+    private final MemberOfTheWeekRoundRepository roundRepository;
+    private final MemberOfTheWeekVoteRepository voteRepository;
+    private final Clock memberOfTheWeekClock;
+    private final MemberOfTheWeekDiscordNotifier discordNotifier;
 
-  public Mono<Void> recordVote(String roundId, String guildId, String voterId, String candidateId) {
-    if (voterId.equals(candidateId)) {
-      return Mono.error(new SelfVoteException());
-    }
+    public Mono<Void> recordVote(String roundId, String guildId, String voterId, String candidateId) {
+        if (voterId.equals(candidateId)) {
+            return Mono.error(new SelfVoteException());
+        }
 
-    Instant now = Instant.now(memberOfTheWeekClock);
+        Instant now = Instant.now(memberOfTheWeekClock);
 
-    return roundRepository
-        .findById(roundId)
-        .filter(round -> round.getGuildId().equals(guildId))
-        .filter(round -> round.getStatus() == MemberOfTheWeekRoundStatus.OPEN)
-        .filter(round -> round.getStartsAt() != null)
-        .filter(round -> round.getEndsAt() != null)
-        .filter(round -> !now.isBefore(round.getStartsAt()))
-        .filter(round -> now.isBefore(round.getEndsAt()))
-        .switchIfEmpty(Mono.error(new VotingRoundClosedException()))
-        .flatMap(
-            round ->
-                voteRepository.save(
-                    MemberOfTheWeekVote.builder()
+        return roundRepository
+                .findById(roundId)
+                .filter(round -> round.getGuildId().equals(guildId))
+                .filter(round -> round.getStatus() == MemberOfTheWeekRoundStatus.OPEN)
+                .filter(round -> round.getStartsAt() != null)
+                .filter(round -> round.getEndsAt() != null)
+                .filter(round -> !now.isBefore(round.getStartsAt()))
+                .filter(round -> now.isBefore(round.getEndsAt()))
+                .switchIfEmpty(Mono.error(new VotingRoundClosedException()))
+                .flatMap(round -> voteRepository.save(MemberOfTheWeekVote.builder()
                         .roundId(round.getId())
                         .guildId(guildId)
                         .voterId(voterId)
                         .candidateId(candidateId)
                         .createdAt(now)
                         .build()))
-        .onErrorMap(DuplicateKeyException.class, error -> new AlreadyVotedException())
-        .flatMap(
-            vote ->
-                discordNotifier
-                    .sendVoteLog(vote)
-                    .onErrorResume(
-                        error -> {
-                          log.error(
-                              "Vote was saved, but the Discord vote log failed | round={} | voter={} | candidate={}",
-                              vote.getRoundId(),
-                              vote.getVoterId(),
-                              vote.getCandidateId(),
-                              error);
+                .onErrorMap(DuplicateKeyException.class, error -> new AlreadyVotedException())
+                .flatMap(vote -> discordNotifier
+                        .sendVoteLog(vote)
+                        .onErrorResume(error -> {
+                            log.error(
+                                    "Vote was saved, but the Discord vote log failed | round={} | voter={} | candidate={}",
+                                    vote.getRoundId(),
+                                    vote.getVoterId(),
+                                    vote.getCandidateId(),
+                                    error);
 
-                          return Mono.empty();
+                            return Mono.empty();
                         })
-                    .thenReturn(vote))
-        .doOnSuccess(
-            vote ->
-                log.info(
-                    "Member of the Week vote recorded | round={} | voter={} | candidate={}",
-                    vote.getRoundId(),
-                    vote.getVoterId(),
-                    vote.getCandidateId()))
-        .then();
-  }
+                        .thenReturn(vote))
+                .doOnSuccess(vote -> log.info(
+                        "Member of the Week vote recorded | round={} | voter={} | candidate={}",
+                        vote.getRoundId(),
+                        vote.getVoterId(),
+                        vote.getCandidateId()))
+                .then();
+    }
 }

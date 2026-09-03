@@ -5,10 +5,10 @@ import lombok.Getter;
 
 @Getter
 public class MissingPermissionException extends RuntimeException {
-  private final Permission permission;
+    private final Permission permission;
 
-  public MissingPermissionException(Permission permission) {
-    super("Missing permission: " + permission.name(), null, false, false);
-    this.permission = permission;
-  }
+    public MissingPermissionException(Permission permission) {
+        super("Missing permission: " + permission.name(), null, false, false);
+        this.permission = permission;
+    }
 }

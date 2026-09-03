@@ -12,10 +12,10 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @Slf4j
 public class MessageCreateListener implements EventListener<MessageCreateEvent> {
-  private final UwuLockService uwuLockService;
+    private final UwuLockService uwuLockService;
 
-  @Override
-  public Mono<Void> execute(MessageCreateEvent event) {
-    return uwuLockService.handleMessageCreate(event);
-  }
+    @Override
+    public Mono<Void> execute(MessageCreateEvent event) {
+        return uwuLockService.handleMessageCreate(event);
+    }
 }

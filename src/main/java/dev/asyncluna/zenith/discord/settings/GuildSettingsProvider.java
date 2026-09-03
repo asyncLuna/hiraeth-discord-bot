@@ -11,16 +11,15 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @Slf4j
 public class GuildSettingsProvider {
-  private final GuildSettingsRepository repository;
+    private final GuildSettingsRepository repository;
 
-  public Mono<GuildSettings> get(String guildId) {
-    return repository
-        .findById(guildId)
-        .onErrorResume(
-            exception -> {
-              log.error("Failed to load guild settings | guildId={}", guildId, exception);
-              return Mono.just(new GuildSettings());
-            })
-        .defaultIfEmpty(new GuildSettings());
-  }
+    public Mono<GuildSettings> get(String guildId) {
+        return repository
+                .findById(guildId)
+                .onErrorResume(exception -> {
+                    log.error("Failed to load guild settings | guildId={}", guildId, exception);
+                    return Mono.just(new GuildSettings());
+                })
+                .defaultIfEmpty(new GuildSettings());
+    }
 }

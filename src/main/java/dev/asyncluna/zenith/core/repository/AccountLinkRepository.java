@@ -7,5 +7,5 @@ import reactor.core.publisher.Mono;
 
 @Repository
 public interface AccountLinkRepository extends ReactiveMongoRepository<AccountLink, String> {
-  Mono<AccountLink> findByBattleTag(String battleTag);
+    Mono<AccountLink> findByBattleTag(String battleTag);
 }

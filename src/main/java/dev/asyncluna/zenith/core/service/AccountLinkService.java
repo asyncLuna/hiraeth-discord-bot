@@ -10,41 +10,30 @@ import reactor.core.publisher.Mono;
 @Service
 @RequiredArgsConstructor
 public class AccountLinkService {
-  private final AccountLinkRepository repository;
+    private final AccountLinkRepository repository;
 
-  public Mono<AccountLinkResult> link(String discordId, String battleTag) {
-    return repository
-        .findByBattleTag(battleTag)
-        .flatMap(
-            existingLink -> {
-              if (!discordId.equals(existingLink.getDiscordId())) {
-                return Mono.error(new AccountAlreadyLinkedException());
-              }
-              return Mono.just(new AccountLinkResult(existingLink, false));
-            })
-        .switchIfEmpty(
-            Mono.defer(
-                () ->
-                    repository
+    public Mono<AccountLinkResult> link(String discordId, String battleTag) {
+        return repository
+                .findByBattleTag(battleTag)
+                .flatMap(existingLink -> {
+                    if (!discordId.equals(existingLink.getDiscordId())) {
+                        return Mono.error(new AccountAlreadyLinkedException());
+                    }
+                    return Mono.just(new AccountLinkResult(existingLink, false));
+                })
+                .switchIfEmpty(Mono.defer(() -> repository
                         .findById(discordId)
-                        .flatMap(
-                            existingLink -> {
-                              existingLink.setBattleTag(battleTag);
-                              return repository
-                                  .save(existingLink)
-                                  .map(savedLink -> new AccountLinkResult(savedLink, true));
-                            })
-                        .switchIfEmpty(
-                            Mono.defer(
-                                () ->
-                                    repository
-                                        .save(
-                                            AccountLink.builder()
-                                                .discordId(discordId)
-                                                .battleTag(battleTag)
-                                                .build())
-                                        .map(
-                                            savedLink ->
-                                                new AccountLinkResult(savedLink, true))))));
-  }
+                        .flatMap(existingLink -> {
+                            existingLink.setBattleTag(battleTag);
+                            return repository
+                                    .save(existingLink)
+                                    .map(savedLink -> new AccountLinkResult(savedLink, true));
+                        })
+                        .switchIfEmpty(Mono.defer(() -> repository
+                                .save(AccountLink.builder()
+                                        .discordId(discordId)
+                                        .battleTag(battleTag)
+                                        .build())
+                                .map(savedLink -> new AccountLinkResult(savedLink, true))))));
+    }
 }

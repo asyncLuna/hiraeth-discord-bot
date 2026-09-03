@@ -6,13 +6,13 @@ import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SubCommand {
-  String name();
+    String name();
 
-  String description();
+    String description();
 
-  ApplicationCommandOption.Type type();
+    ApplicationCommandOption.Type type();
 
-  boolean required() default false;
+    boolean required() default false;
 
-  boolean autocomplete() default false;
+    boolean autocomplete() default false;
 }

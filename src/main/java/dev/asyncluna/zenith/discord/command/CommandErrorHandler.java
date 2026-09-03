@@ -12,35 +12,33 @@ import reactor.core.publisher.Mono;
 @Component
 @Slf4j
 public class CommandErrorHandler {
-  public Mono<Void> handle(CommandContext context, String commandName, Throwable exception) {
-    String message;
+    public Mono<Void> handle(CommandContext context, String commandName, Throwable exception) {
+        String message;
 
-    if (exception instanceof CommandException) {
-      message = exception.getMessage();
-    } else if (exception instanceof WebClientResponseException webException) {
-      String rawJson = webException.getResponseBodyAsString();
-      log.info("API error body payload for '/{}': {}", commandName, rawJson);
-      message = parseApiErrorMessage(rawJson);
-      if (message == null) message = context.localize("error.command_execution_failed_description");
-    } else {
-      log.error("Unhandled exception executing command '/{}'", commandName, exception);
-      message = context.localize("error.command_execution_failed_description");
+        if (exception instanceof CommandException) {
+            message = exception.getMessage();
+        } else if (exception instanceof WebClientResponseException webException) {
+            String rawJson = webException.getResponseBodyAsString();
+            log.info("API error body payload for '/{}': {}", commandName, rawJson);
+            message = parseApiErrorMessage(rawJson);
+            if (message == null) message = context.localize("error.command_execution_failed_description");
+        } else {
+            log.error("Unhandled exception executing command '/{}'", commandName, exception);
+            message = context.localize("error.command_execution_failed_description");
+        }
+
+        return context.editReply()
+                .withEmbeds(EmbedCreateSpec.builder()
+                        .title(context.localize("error.command_execution_failed_title"))
+                        .description(message)
+                        .color(EmbedUtils.ERROR_COLOR)
+                        .build())
+                .then();
     }
 
-    return context
-        .editReply()
-        .withEmbeds(
-            EmbedCreateSpec.builder()
-                .title(context.localize("error.command_execution_failed_title"))
-                .description(message)
-                .color(EmbedUtils.ERROR_COLOR)
-                .build())
-        .then();
-  }
-
-  private String parseApiErrorMessage(String json) {
-    if (json == null || !json.contains("\"error\"")) return null;
-    Matcher matcher = Pattern.compile("\"error\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
-    return matcher.find() ? matcher.group(1) : null;
-  }
+    private String parseApiErrorMessage(String json) {
+        if (json == null || !json.contains("\"error\"")) return null;
+        Matcher matcher = Pattern.compile("\"error\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
+        return matcher.find() ? matcher.group(1) : null;
+    }
 }

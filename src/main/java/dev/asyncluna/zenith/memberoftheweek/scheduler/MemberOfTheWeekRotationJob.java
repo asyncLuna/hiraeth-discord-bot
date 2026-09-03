@@ -13,23 +13,23 @@ import org.quartz.JobExecutionException;
 @Slf4j
 @DisallowConcurrentExecution
 public class MemberOfTheWeekRotationJob implements Job {
-  private final MemberOfTheWeekRoundService roundService;
+    private final MemberOfTheWeekRoundService roundService;
 
-  @Override
-  public void execute(JobExecutionContext context) throws JobExecutionException {
-    log.info(
-        "Member of the Week Quartz job started | scheduledFireTime={} | actualFireTime={}",
-        context.getScheduledFireTime(),
-        context.getFireTime());
+    @Override
+    public void execute(JobExecutionContext context) throws JobExecutionException {
+        log.info(
+                "Member of the Week Quartz job started | scheduledFireTime={} | actualFireTime={}",
+                context.getScheduledFireTime(),
+                context.getFireTime());
 
-    try {
-      roundService.rotateRound().block(Duration.ofMinutes(2));
+        try {
+            roundService.rotateRound().block(Duration.ofMinutes(2));
 
-      log.info("Member of the Week Quartz job completed");
-    } catch (Exception exception) {
-      log.error("Member of the Week Quartz job failed", exception);
+            log.info("Member of the Week Quartz job completed");
+        } catch (Exception exception) {
+            log.error("Member of the Week Quartz job failed", exception);
 
-      throw new JobExecutionException(exception, true);
+            throw new JobExecutionException(exception, true);
+        }
     }
-  }
 }

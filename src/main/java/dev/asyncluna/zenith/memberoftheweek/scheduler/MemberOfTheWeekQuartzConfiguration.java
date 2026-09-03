@@ -19,81 +19,79 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @Slf4j
 public class MemberOfTheWeekQuartzConfiguration {
-  @Bean
-  public AutowiringSpringBeanJobFactory quartzJobFactory(ApplicationContext applicationContext) {
-    AutowiringSpringBeanJobFactory jobFactory = new AutowiringSpringBeanJobFactory();
-    jobFactory.setApplicationContext(applicationContext);
-    return jobFactory;
-  }
+    @Bean
+    public AutowiringSpringBeanJobFactory quartzJobFactory(ApplicationContext applicationContext) {
+        AutowiringSpringBeanJobFactory jobFactory = new AutowiringSpringBeanJobFactory();
+        jobFactory.setApplicationContext(applicationContext);
+        return jobFactory;
+    }
 
-  @Bean
-  public SchedulerFactoryBeanCustomizer memberOfTheWeekSchedulerCustomizer(
-      AutowiringSpringBeanJobFactory jobFactory) {
-    return schedulerFactoryBean -> schedulerFactoryBean.setJobFactory(jobFactory);
-  }
+    @Bean
+    public SchedulerFactoryBeanCustomizer memberOfTheWeekSchedulerCustomizer(
+            AutowiringSpringBeanJobFactory jobFactory) {
+        return schedulerFactoryBean -> schedulerFactoryBean.setJobFactory(jobFactory);
+    }
 
-  @Bean
-  public JobDetail memberOfTheWeekJobDetail() {
-    log.info("Registering Member of the Week Quartz job");
+    @Bean
+    public JobDetail memberOfTheWeekJobDetail() {
+        log.info("Registering Member of the Week Quartz job");
 
-    return JobBuilder.newJob(MemberOfTheWeekRotationJob.class)
-        .withIdentity("member-of-the-week-rotation-job")
-        .withDescription("Closes the previous Member of the Week round and opens a new one")
-        .storeDurably()
-        .build();
-  }
+        return JobBuilder.newJob(MemberOfTheWeekRotationJob.class)
+                .withIdentity("member-of-the-week-rotation-job")
+                .withDescription("Closes the previous Member of the Week round and opens a new one")
+                .storeDurably()
+                .build();
+    }
 
-  @Bean
-  public JobDetail memberOfTheWeekExpiryJobDetail() {
-    log.info("Registering Member of the Week expiry Quartz job");
+    @Bean
+    public JobDetail memberOfTheWeekExpiryJobDetail() {
+        log.info("Registering Member of the Week expiry Quartz job");
 
-    return JobBuilder.newJob(MemberOfTheWeekExpiryJob.class)
-        .withIdentity("member-of-the-week-expiry-job")
-        .withDescription("Closes an expired Member of the Week round")
-        .storeDurably()
-        .build();
-  }
+        return JobBuilder.newJob(MemberOfTheWeekExpiryJob.class)
+                .withIdentity("member-of-the-week-expiry-job")
+                .withDescription("Closes an expired Member of the Week round")
+                .storeDurably()
+                .build();
+    }
 
-  @Bean
-  public CronTrigger memberOfTheWeekTrigger(
-      @Qualifier("memberOfTheWeekJobDetail") JobDetail memberOfTheWeekJobDetail,
-      MemberOfTheWeekProperties properties) {
-    TimeZone timezone = TimeZone.getTimeZone(properties.timezone());
+    @Bean
+    public CronTrigger memberOfTheWeekTrigger(
+            @Qualifier("memberOfTheWeekJobDetail") JobDetail memberOfTheWeekJobDetail,
+            MemberOfTheWeekProperties properties) {
+        TimeZone timezone = TimeZone.getTimeZone(properties.timezone());
 
-    CronScheduleBuilder schedule =
-        CronScheduleBuilder.cronSchedule(properties.cron())
-            .inTimeZone(timezone)
-            .withMisfireHandlingInstructionFireAndProceed();
+        CronScheduleBuilder schedule = CronScheduleBuilder.cronSchedule(properties.cron())
+                .inTimeZone(timezone)
+                .withMisfireHandlingInstructionFireAndProceed();
 
-    CronTrigger trigger =
-        TriggerBuilder.newTrigger()
-            .withIdentity("member-of-the-week-monday-trigger")
-            .forJob(memberOfTheWeekJobDetail)
-            .withSchedule(schedule)
-            .build();
+        CronTrigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("member-of-the-week-monday-trigger")
+                .forJob(memberOfTheWeekJobDetail)
+                .withSchedule(schedule)
+                .build();
 
-    log.info(
-        "Registered Member of the Week Quartz trigger | cron={} | timezone={}",
-        properties.cron(),
-        timezone.getID());
+        log.info(
+                "Registered Member of the Week Quartz trigger | cron={} | timezone={}",
+                properties.cron(),
+                timezone.getID());
 
-    return trigger;
-  }
+        return trigger;
+    }
 
-  @Bean
-  public Trigger memberOfTheWeekExpiryTrigger(
-      @Qualifier("memberOfTheWeekExpiryJobDetail") JobDetail memberOfTheWeekExpiryJobDetail) {
-    Trigger trigger =
-        TriggerBuilder.newTrigger()
-            .withIdentity("member-of-the-week-expiry-trigger")
-            .forJob(memberOfTheWeekExpiryJobDetail)
-            .withSchedule(
-                SimpleScheduleBuilder.simpleSchedule().withIntervalInMinutes(1).repeatForever())
-            .startNow()
-            .build();
+    @Bean
+    public Trigger memberOfTheWeekExpiryTrigger(
+            @Qualifier("memberOfTheWeekExpiryJobDetail") JobDetail memberOfTheWeekExpiryJobDetail) {
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("member-of-the-week-expiry-trigger")
+                .forJob(memberOfTheWeekExpiryJobDetail)
+                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+                        .withIntervalInMinutes(1)
+                        .repeatForever())
+                .startNow()
+                .build();
 
-    log.info("Registered Member of the Week expiry Quartz trigger | interval=1 minute");
+        log.info("Registered Member of the Week expiry Quartz trigger | interval=1 minute");
 
-    return trigger;
-  }
+        return trigger;
+    }
 }

@@ -11,15 +11,15 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Repeatable(CommandOptions.class)
 public @interface CommandOption {
-  String name();
+    String name();
 
-  String description();
+    String description();
 
-  ApplicationCommandOption.Type type();
+    ApplicationCommandOption.Type type();
 
-  boolean required() default false;
+    boolean required() default false;
 
-  boolean autocomplete() default false;
+    boolean autocomplete() default false;
 
-  SubCommand[] subCommands() default {};
+    SubCommand[] subCommands() default {};
 }

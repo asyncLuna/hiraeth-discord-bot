@@ -14,51 +14,43 @@ import reactor.core.publisher.Mono;
 @Component
 @RequiredArgsConstructor
 public class TopHeroesButtonListener implements EventListener<ButtonInteractionEvent> {
-  private final TopHeroesSessionManager sessionManager;
-  private final TopHeroesRenderer renderer;
-  private final TopHeroesComponentFactory componentFactory;
-  private final GuildSettingsProvider guildSettingsProvider;
-  private final I18nManager i18nManager;
+    private final TopHeroesSessionManager sessionManager;
+    private final TopHeroesRenderer renderer;
+    private final TopHeroesComponentFactory componentFactory;
+    private final GuildSettingsProvider guildSettingsProvider;
+    private final I18nManager i18nManager;
 
-  @Override
-  public Mono<Void> execute(ButtonInteractionEvent event) {
-    String[] parts = event.getCustomId().split(":", 2);
-    if (parts.length < 2 || (!parts[0].equals("th-prev") && !parts[0].equals("th-next")))
-      return Mono.empty();
+    @Override
+    public Mono<Void> execute(ButtonInteractionEvent event) {
+        String[] parts = event.getCustomId().split(":", 2);
+        if (parts.length < 2 || (!parts[0].equals("th-prev") && !parts[0].equals("th-next"))) return Mono.empty();
 
-    String sessionId = parts[1];
-    TopHeroesSession session = sessionManager.get(sessionId);
-    String guildId = event.getInteraction().getGuildId().map(Snowflake::asString).orElse("");
+        String sessionId = parts[1];
+        TopHeroesSession session = sessionManager.get(sessionId);
+        String guildId =
+                event.getInteraction().getGuildId().map(Snowflake::asString).orElse("");
 
-    return guildSettingsProvider
-        .get(guildId)
-        .flatMap(
-            settings -> {
-              Locale locale = SupportedLocale.forLanguageTag(settings.getLocale()).getLocale();
+        return guildSettingsProvider.get(guildId).flatMap(settings -> {
+            Locale locale = SupportedLocale.forLanguageTag(settings.getLocale()).getLocale();
 
-              if (session == null)
-                return event
-                    .reply()
-                    .withEphemeral(true)
-                    .withContent(
-                        i18nManager.localize(
-                            "error.menu_interaction_expired", locale, "top_heroes"));
+            if (session == null)
+                return event.reply()
+                        .withEphemeral(true)
+                        .withContent(i18nManager.localize("error.menu_interaction_expired", locale, "top_heroes"));
 
-              if (!session.userId().equals(event.getInteraction().getUser().getId().asString()))
-                return event
-                    .reply()
-                    .withEphemeral(true)
-                    .withContent(i18nManager.localize("error.menu_not_owned", locale));
+            if (!session.userId()
+                    .equals(event.getInteraction().getUser().getId().asString()))
+                return event.reply()
+                        .withEphemeral(true)
+                        .withContent(i18nManager.localize("error.menu_not_owned", locale));
 
-              if (parts[0].equals("th-prev") && session.page() > 0) session.previousPage();
-              if (parts[0].equals("th-next") && session.page() < renderer.totalPages(session) - 1)
-                session.nextPage();
+            if (parts[0].equals("th-prev") && session.page() > 0) session.previousPage();
+            if (parts[0].equals("th-next") && session.page() < renderer.totalPages(session) - 1) session.nextPage();
 
-              return event
-                  .edit()
-                  .withEmbeds(renderer.render(session, locale))
-                  .withComponents(componentFactory.createPageButtons(sessionId, session, locale))
-                  .then();
-            });
-  }
+            return event.edit()
+                    .withEmbeds(renderer.render(session, locale))
+                    .withComponents(componentFactory.createPageButtons(sessionId, session, locale))
+                    .then();
+        });
+    }
 }

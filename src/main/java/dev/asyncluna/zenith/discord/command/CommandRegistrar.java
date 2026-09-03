@@ -13,43 +13,33 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @Slf4j
 public class CommandRegistrar implements SmartInitializingSingleton {
-  private final GatewayDiscordClient gateway;
-  private final CommandRegistry commandRegistry;
+    private final GatewayDiscordClient gateway;
+    private final CommandRegistry commandRegistry;
 
-  @Override
-  public void afterSingletonsInstantiated() {
-    registerGlobalSlashCommands()
-        .doOnSubscribe(
-            __ -> log.info("Starting global Discord application command synchronization"))
-        .subscribe();
-  }
+    @Override
+    public void afterSingletonsInstantiated() {
+        registerGlobalSlashCommands()
+                .doOnSubscribe(__ -> log.info("Starting global Discord application command synchronization"))
+                .subscribe();
+    }
 
-  private Mono<Void> registerGlobalSlashCommands() {
-    List<ApplicationCommandRequest> requests = commandRegistry.getCommandRequests();
+    private Mono<Void> registerGlobalSlashCommands() {
+        List<ApplicationCommandRequest> requests = commandRegistry.getCommandRequests();
 
-    log.info("Synchronizing {} command(s) globally", requests.size());
+        log.info("Synchronizing {} command(s) globally", requests.size());
 
-    return gateway
-        .getRestClient()
-        .getApplicationId()
-        .flatMap(
-            appId ->
-                gateway
-                    .getRestClient()
-                    .getApplicationService()
-                    .bulkOverwriteGlobalApplicationCommand(appId, requests)
-                    .collectList()
-                    .doOnNext(
-                        data ->
-                            log.info(
-                                "Successfully synchronized {} global application command(s)",
-                                data.size()))
-                    .onErrorResume(
-                        exception -> {
-                          log.error(
-                              "Failed to register global application slash commands", exception);
-                          return Mono.empty();
+        return gateway.getRestClient()
+                .getApplicationId()
+                .flatMap(appId -> gateway.getRestClient()
+                        .getApplicationService()
+                        .bulkOverwriteGlobalApplicationCommand(appId, requests)
+                        .collectList()
+                        .doOnNext(data ->
+                                log.info("Successfully synchronized {} global application command(s)", data.size()))
+                        .onErrorResume(exception -> {
+                            log.error("Failed to register global application slash commands", exception);
+                            return Mono.empty();
                         }))
-        .then();
-  }
+                .then();
+    }
 }

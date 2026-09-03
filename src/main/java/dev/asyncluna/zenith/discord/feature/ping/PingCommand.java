@@ -11,20 +11,19 @@ import reactor.core.publisher.Mono;
 @Component
 @Command(name = "ping", description = "Check the bot's latency.", ephemeral = true)
 public class PingCommand implements BotCommand {
-  @Override
-  public Mono<?> handle(CommandContext ctx) {
-    int shardIndex = ctx.getEvent().getShardInfo().getIndex();
+    @Override
+    public Mono<?> handle(CommandContext ctx) {
+        int shardIndex = ctx.getEvent().getShardInfo().getIndex();
 
-    long latencyMs =
-        ctx.getEvent()
-            .getClient()
-            .getGatewayClient(shardIndex)
-            .map(GatewayClient::getResponseTime)
-            .map(Duration::toMillis)
-            .orElse(0L);
+        long latencyMs = ctx.getEvent()
+                .getClient()
+                .getGatewayClient(shardIndex)
+                .map(GatewayClient::getResponseTime)
+                .map(Duration::toMillis)
+                .orElse(0L);
 
-    String localizedResponse = ctx.localize("ping.response", latencyMs);
+        String localizedResponse = ctx.localize("ping.response", latencyMs);
 
-    return ctx.editReply(localizedResponse);
-  }
+        return ctx.editReply(localizedResponse);
+    }
 }
